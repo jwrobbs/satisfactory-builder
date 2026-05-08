@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Satisfactory Calculator</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surf: #181b24;
+  --surf2: #1f2430;
+  --surf3: #252a38;
+  --border: #2a2f42;
+  --border2: #3a4055;
+  --accent: #f5a623;
+  --accent-dim: #c48018;
+  --accent-glow: rgba(245,166,35,0.1);
+  --text: #e2e6f0;
+  --dim: #8b90a0;
+  --muted: #454a5e;
+  --green: #4ade80;
+  --blue: #60a5fa;
+  --red: #f87171;
+  --yellow: #fbbf24;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:var(--bg);color:var(--text);
+  height:100vh;overflow:hidden;
+  display:grid;
+  grid-template-rows:54px 1fr;
+  grid-template-columns:230px 1fr 370px;
+  grid-template-areas:"hdr hdr hdr" "side plan res";
+}
+/* ── Header ── */
+#hdr{
+  grid-area:hdr;background:var(--surf);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;padding:0 16px;
+}
+.logo{font-size:17px;font-weight:700;color:var(--accent);letter-spacing:.4px;white-space:nowrap}
+.logo span{color:var(--dim);font-weight:400;font-size:12px;margin-left:6px}
+.vr{width:1px;height:22px;background:var(--border)}
+.mode-toggle{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.mode-btn{
+  padding:5px 14px;font-size:12px;font-weight:500;
+  cursor:pointer;border:none;background:transparent;color:var(--dim);transition:all .15s;
+}
+.mode-btn.on{background:var(--accent);color:#0f1117;font-weight:700}
+.mode-btn:hover:not(.on){background:var(--surf2);color:var(--text)}
+/* ── Sidebar ── */
+#side{
+  grid-area:side;background:var(--surf);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.side-hdr{padding:10px;border-bottom:1px solid var(--border)}
+.side-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);margin-bottom:7px}
+.search{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;padding:6px 9px;color:var(--text);font-size:12px;outline:none;
+}
+.search:focus{border-color:var(--accent)}
+.search::placeholder{color:var(--muted)}
+#item-list{flex:1;overflow-y:auto;padding:3px 0}
+#item-list::-webkit-scrollbar{width:4px}
+#item-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.grp-lbl{
+  padding:5px 10px 2px;font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
+}
+.item-row{
+  padding:4px 10px;font-size:12px;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:background .1s;
+}
+.item-row:hover{background:var(--surf2)}
+.item-row.sel{background:var(--accent-glow);color:var(--accent)}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.c-raw{background:#6b7280}.c-ingot{background:#f59e0b}.c-basic{background:#3b82f6}
+.c-standard{background:#8b5cf6}.c-industrial{background:#ec4899}
+.c-petroleum{background:#14b8a6}.c-liquid{background:#06b6d4}
+.c-gas{background:#a3e635}.c-nuclear{background:#22c55e}
+#item-detail{
+  border-top:1px solid var(--border);padding:10px;
+  max-height:260px;overflow-y:auto;background:var(--bg);display:none;
+}
+#item-detail::-webkit-scrollbar{width:4px}
+#item-detail::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.det-name{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.det-sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin:8px 0 4px}
+.rcard{
+  background:var(--surf);border:1px solid var(--border);border-radius:4px;
+  padding:7px 8px;margin-bottom:5px;font-size:11px;
+}
+.rcard.alt{border-color:var(--accent-dim)}
+.rcard-name{font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:4px}
+.alt-badge{
+  font-size:9px;background:var(--accent);color:#0f1117;
+  padding:1px 4px;border-radius:2px;font-weight:800;
+}
+.rcard-machine{
+  display:inline-block;font-size:10px;color:var(--dim);
+  background:var(--surf2);padding:1px 5px;border-radius:2px;margin-bottom:3px;
+}
+.rcard-row{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-top:2px;font-size:11px}
+.rcard-arrow{color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:2px}
+.chip-n{color:var(--accent);font-weight:700}
+.chip-byp{opacity:.6}
+/* ── Planner ── */
+#plan{grid-area:plan;display:flex;flex-direction:column;overflow:hidden}
+.plan-bar{
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  background:var(--surf);display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.isel{
+  flex:1;min-width:170px;background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;padding:6px 9px;color:var(--text);font-size:13px;
+  outline:none;cursor:pointer;appearance:none;
+}
+.isel:focus{border-color:var(--accent)}
+.ninput{
+  width:80px;background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;padding:6px 9px;color:var(--text);font-size:13px;
+  text-align:right;outline:none;
+}
+.ninput:focus{border-color:var(--accent)}
+.unit{font-size:12px;color:var(--dim);white-space:nowrap}
+.go-btn{
+  background:var(--accent);color:#0f1117;border:none;border-radius:4px;
+  padding:6px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;
+}
+.go-btn:hover{background:#e8961a}
+/* Tree */
+#tree{flex:1;overflow-y:auto;padding:14px}
+#tree::-webkit-scrollbar{width:6px}
+#tree::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.empty{text-align:center;padding:52px 20px;color:var(--muted)}
+.empty-ico{font-size:38px;margin-bottom:10px}
+.empty-ttl{font-size:15px;font-weight:500;color:var(--dim);margin-bottom:5px}
+.empty-sub{font-size:12px}
+.tnode{margin-bottom:6px}
+.thead{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 11px;background:var(--surf);
+  border:1px solid var(--border);border-radius:5px;
+}
+.thead.raw-node{background:var(--bg);opacity:.75}
+.tname{font-weight:500;font-size:13px;flex:1}
+.trate{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
+.tmach{font-size:11px;color:var(--dim);white-space:nowrap}
+.tpow{font-size:11px;color:var(--blue);white-space:nowrap}
+.raw-tag{font-size:10px;background:var(--surf3);color:var(--muted);padding:1px 5px;border-radius:2px}
+.trsel{
+  font-size:11px;background:var(--bg);border:1px solid var(--border);
+  border-radius:3px;padding:2px 4px;color:var(--text);outline:none;cursor:pointer;max-width:140px;
+}
+.trsel:focus{border-color:var(--accent)}
+.tchildren{margin-left:20px;margin-top:4px;padding-left:11px;border-left:1px solid var(--border)}
+/* Machine Builder */
+.mach-list{display:flex;flex-direction:column;gap:7px}
+.mrow{
+  display:flex;align-items:center;gap:7px;
+  background:var(--surf2);border:1px solid var(--border);
+  border-radius:5px;padding:8px 10px;
+}
+.msel{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;padding:5px 7px;color:var(--text);font-size:12px;outline:none;
+}
+.msel:focus{border-color:var(--accent)}
+.mcount{
+  width:56px;background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;padding:5px 7px;color:var(--text);font-size:12px;text-align:center;outline:none;
+}
+.mcount:focus{border-color:var(--accent)}
+.mlbl{font-size:12px;color:var(--dim);white-space:nowrap}
+.mrem{
+  margin-left:auto;background:transparent;border:1px solid var(--border);
+  border-radius:3px;color:var(--muted);padding:3px 7px;cursor:pointer;font-size:12px;transition:all .15s;
+}
+.mrem:hover{border-color:var(--red);color:var(--red)}
+.add-row{
+  background:transparent;border:1px dashed var(--border);border-radius:5px;
+  color:var(--dim);padding:8px;cursor:pointer;font-size:13px;
+  transition:all .15s;text-align:center;width:100%;
+}
+.add-row:hover{border-color:var(--accent);color:var(--accent)}
+/* ── Results ── */
+#res{
+  grid-area:res;background:var(--surf);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.res-hdr{
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);
+}
+#res-body{flex:1;overflow-y:auto;padding:10px}
+#res-body::-webkit-scrollbar{width:4px}
+#res-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.rsec-ttl{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;
+  color:var(--muted);margin:12px 0 6px;display:flex;align-items:center;gap:6px;
+}
+.rsec-ttl::after{content:'';flex:1;height:1px;background:var(--border)}
+.rsec-ttl:first-child{margin-top:0}
+.rrow{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 7px;border-radius:4px;font-size:12px;transition:background .1s;
+}
+.rrow:hover{background:var(--surf2)}
+.rrow-name{display:flex;align-items:center;gap:6px}
+.rrow-val{font-family:'Consolas','Courier New',monospace;font-size:12px;font-weight:700}
+.col-o{color:var(--accent)}.col-b{color:var(--blue)}.col-g{color:var(--green)}
+.col-r{color:var(--red)}.col-d{color:var(--dim)}
+.pow-box{
+  padding:10px;background:var(--bg);border:1px solid var(--border);
+  border-radius:5px;display:flex;align-items:center;justify-content:space-between;
+  margin-top:4px;
+}
+.pow-lbl{font-size:12px;color:var(--dim)}
+.pow-val{font-size:20px;font-weight:800;color:var(--blue);font-family:'Consolas',monospace}
+.mach-blk{
+  padding:6px 8px;background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;margin-bottom:4px;font-size:12px;
+}
+.mach-blk-name{font-weight:600}
+.mach-blk-detail{color:var(--dim);font-size:11px;margin-top:1px}
+.surplus{color:var(--green)}.deficit{color:var(--red)}.balanced{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div class="logo">Satisfactory Calculator <span>1.0</span></div>
+  <div class="vr"></div>
+  <div class="mode-toggle">
+    <button class="mode-btn on" data-mode="target" onclick="setMode('target')">⚙ Target Output</button>
+    <button class="mode-btn" data-mode="builder" onclick="setMode('builder')">🏭 Machine Builder</button>
+  </div>
+</div>
+
+<div id="side">
+  <div class="side-hdr">
+    <div class="side-label">Recipe Browser</div>
+    <input class="search" id="browser-search" placeholder="Search items…" oninput="filterBrowser(this.value)">
+  </div>
+  <div id="item-list"></div>
+  <div id="item-detail"></div>
+</div>
+
+<div id="plan">
+  <div class="plan-bar" id="plan-bar"></div>
+  <div id="tree"></div>
+</div>
+
+<div id="res">
+  <div class="res-hdr">Production Summary</div>
+  <div id="res-body"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  GAME DATA
+// ════════════════════════════════════════════════════════
+
+const ITEMS = [
+  // Raw
+  {id:'iron-ore',name:'Iron Ore',cat:'raw',isRaw:true},
+  {id:'copper-ore',name:'Copper Ore',cat:'raw',isRaw:true},
+  {id:'limestone',name:'Limestone',cat:'raw',isRaw:true},
+  {id:'coal',name:'Coal',cat:'raw',isRaw:true},
+  {id:'caterium-ore',name:'Caterium Ore',cat:'raw',isRaw:true},
+  {id:'raw-quartz',name:'Raw Quartz',cat:'raw',isRaw:true},
+  {id:'sulfur',name:'Sulfur',cat:'raw',isRaw:true},
+  {id:'bauxite',name:'Bauxite',cat:'raw',isRaw:true},
+  {id:'uranium',name:'Uranium',cat:'raw',isRaw:true},
+  {id:'sam',name:'SAM',cat:'raw',isRaw:true},
+  {id:'crude-oil',name:'Crude Oil',cat:'liquid',isRaw:true},
+  {id:'water',name:'Water',cat:'liquid',isRaw:true},
+  {id:'nitrogen-gas',name:'Nitrogen Gas',cat:'gas',isRaw:true},
+  // Byproducts treated as external supply
+  {id:'heavy-oil-residue',name:'Heavy Oil Residue',cat:'petroleum',isRaw:true},
+  {id:'polymer-resin',name:'Polymer Resin',cat:'petroleum',isRaw:true},
+  // Ingots
+  {id:'iron-ingot',name:'Iron Ingot',cat:'ingot'},
+  {id:'copper-ingot',name:'Copper Ingot',cat:'ingot'},
+  {id:'caterium-ingot',name:'Caterium Ingot',cat:'ingot'},
+  {id:'steel-ingot',name:'Steel Ingot',cat:'ingot'},
+  {id:'aluminum-ingot',name:'Aluminum Ingot',cat:'ingot'},
+  // Basic
+  {id:'iron-plate',name:'Iron Plate',cat:'basic'},
+  {id:'iron-rod',name:'Iron Rod',cat:'basic'},
+  {id:'wire',name:'Wire',cat:'basic'},
+  {id:'cable',name:'Cable',cat:'basic'},
+  {id:'concrete',name:'Concrete',cat:'basic'},
+  {id:'screw',name:'Screw',cat:'basic'},
+  {id:'copper-sheet',name:'Copper Sheet',cat:'basic'},
+  {id:'steel-beam',name:'Steel Beam',cat:'basic'},
+  {id:'steel-pipe',name:'Steel Pipe',cat:'basic'},
+  {id:'quickwire',name:'Quickwire',cat:'basic'},
+  {id:'quartz-crystal',name:'Quartz Crystal',cat:'basic'},
+  {id:'silica',name:'Silica',cat:'basic'},
+  {id:'aluminum-casing',name:'Aluminum Casing',cat:'basic'},
+  {id:'alclad-sheet',name:'Alclad Aluminum Sheet',cat:'basic'},
+  {id:'empty-canister',name:'Empty Canister',cat:'basic'},
+  {id:'iron-rebar',name:'Iron Rebar',cat:'basic'},
+  {id:'aluminum-scrap',name:'Aluminum Scrap',cat:'basic'},
+  // Standard
+  {id:'reinforced-iron-plate',name:'Reinforced Iron Plate',cat:'standard'},
+  {id:'rotor',name:'Rotor',cat:'standard'},
+  {id:'modular-frame',name:'Modular Frame',cat:'standard'},
+  {id:'stator',name:'Stator',cat:'standard'},
+  {id:'motor',name:'Motor',cat:'standard'},
+  {id:'encased-industrial-beam',name:'Encased Industrial Beam',cat:'standard'},
+  {id:'circuit-board',name:'Circuit Board',cat:'standard'},
+  {id:'ai-limiter',name:'AI Limiter',cat:'standard'},
+  {id:'automated-wiring',name:'Automated Wiring',cat:'standard'},
+  {id:'versatile-framework',name:'Versatile Framework',cat:'standard'},
+  {id:'heat-sink',name:'Heat Sink',cat:'standard'},
+  {id:'electromagnetic-control-rod',name:'Electromagnetic Control Rod',cat:'standard'},
+  // Industrial
+  {id:'heavy-modular-frame',name:'Heavy Modular Frame',cat:'industrial'},
+  {id:'computer',name:'Computer',cat:'industrial'},
+  {id:'crystal-oscillator',name:'Crystal Oscillator',cat:'industrial'},
+  {id:'high-speed-connector',name:'High-Speed Connector',cat:'industrial'},
+  {id:'smart-plating',name:'Smart Plating',cat:'industrial'},
+  {id:'radio-control-unit',name:'Radio Control Unit',cat:'industrial'},
+  {id:'supercomputer',name:'Supercomputer',cat:'industrial'},
+  {id:'modular-engine',name:'Modular Engine',cat:'industrial'},
+  {id:'adaptive-control-unit',name:'Adaptive Control Unit',cat:'industrial'},
+  {id:'turbo-motor',name:'Turbo Motor',cat:'industrial'},
+  {id:'cooling-system',name:'Cooling System',cat:'industrial'},
+  {id:'battery',name:'Battery',cat:'industrial'},
+  {id:'fused-modular-frame',name:'Fused Modular Frame',cat:'industrial'},
+  // Petroleum
+  {id:'plastic',name:'Plastic',cat:'petroleum'},
+  {id:'rubber',name:'Rubber',cat:'petroleum'},
+  {id:'fuel',name:'Fuel',cat:'petroleum'},
+  {id:'turbofuel',name:'Turbofuel',cat:'petroleum'},
+  {id:'petroleum-coke',name:'Petroleum Coke',cat:'petroleum'},
+  // Liquids
+  {id:'alumina-solution',name:'Alumina Solution',cat:'liquid'},
+  {id:'sulfuric-acid',name:'Sulfuric Acid',cat:'liquid'},
+  {id:'nitric-acid',name:'Nitric Acid',cat:'liquid'},
+  // Nuclear
+  {id:'encased-uranium-cell',name:'Encased Uranium Cell',cat:'nuclear'},
+  {id:'electromagnetic-control-rod2',name:'Electromagnetic Control Rod',cat:'nuclear'}, // alias handled in recipes
+  {id:'uranium-fuel-rod',name:'Uranium Fuel Rod',cat:'nuclear'},
+  {id:'non-fissile-uranium',name:'Non-fissile Uranium',cat:'nuclear'},
+  {id:'plutonium-pellet',name:'Plutonium Pellet',cat:'nuclear'},
+  {id:'encased-plutonium-cell',name:'Encased Plutonium Cell',cat:'nuclear'},
+  {id:'plutonium-fuel-rod',name:'Plutonium Fuel Rod',cat:'nuclear'},
+];
+
+const BUILDINGS = [
+  {id:'smelter',name:'Smelter',power:4},
+  {id:'constructor',name:'Constructor',power:4},
+  {id:'assembler',name:'Assembler',power:15},
+  {id:'manufacturer',name:'Manufacturer',power:55},
+  {id:'foundry',name:'Foundry',power:16},
+  {id:'refinery',name:'Refinery',power:30},
+  {id:'blender',name:'Blender',power:75},
+  {id:'packager',name:'Packager',power:10},
+  {id:'particle-accelerator',name:'Particle Accelerator',power:1500},
+  {id:'nuclear-power-plant',name:'Nuclear Power Plant',power:2500},
+  {id:'converter',name:'Converter',power:100},
+  {id:'quantum-encoder',name:'Quantum Encoder',power:1000},
+  // Extractors
+  {id:'miner-mk1',name:'Miner Mk.1',power:5},
+  {id:'miner-mk2',name:'Miner Mk.2',power:12},
+  {id:'miner-mk3',name:'Miner Mk.3',power:22.5},
+  {id:'oil-extractor',name:'Oil Extractor',power:40},
+  {id:'water-extractor',name:'Water Extractor',power:20},
+  {id:'resource-well-pressurizer',name:'Resource Well Pressurizer',power:150},
+];
+
+// R() shorthand: recipe helper
+const R=(id,name,machine,duration,inputs,outputs,isAlternate=false)=>
+  ({id,name,machine,duration,inputs,outputs,isAlternate});
+const io=(item,amount)=>({item,amount});
+
+const RECIPES = [
+  // ── Smelter ──
+  R('r-iron-ingot','Iron Ingot','smelter',2,[io('iron-ore',1)],[io('iron-ingot',1)]),
+  R('r-copper-ingot','Copper Ingot','smelter',2,[io('copper-ore',1)],[io('copper-ingot',1)]),
+  R('r-caterium-ingot','Caterium Ingot','smelter',4,[io('caterium-ore',3)],[io('caterium-ingot',1)]),
+  // ── Foundry ──
+  R('r-steel-ingot','Steel Ingot','foundry',4,[io('iron-ore',3),io('coal',3)],[io('steel-ingot',2)]),
+  R('r-aluminum-ingot','Aluminum Ingot','foundry',4,[io('aluminum-scrap',6),io('silica',5)],[io('aluminum-ingot',4)]),
+  // ── Constructor ──
+  R('r-iron-plate','Iron Plate','constructor',6,[io('iron-ingot',3)],[io('iron-plate',2)]),
+  R('r-iron-rod','Iron Rod','constructor',4,[io('iron-ingot',1)],[io('iron-rod',1)]),
+  R('r-wire','Wire','constructor',4,[io('copper-ingot',1)],[io('wire',2)]),
+  R('r-cable','Cable','constructor',2,[io('wire',2)],[io('cable',1)]),
+  R('r-concrete','Concrete','constructor',4,[io('limestone',3)],[io('concrete',1)]),
+  R('r-screw','Screw','constructor',6,[io('iron-rod',1)],[io('screw',4)]),
+  R('r-copper-sheet','Copper Sheet','constructor',6,[io('copper-ingot',2)],[io('copper-sheet',1)]),
+  R('r-steel-beam','Steel Beam','constructor',4,[io('steel-ingot',4)],[io('steel-beam',1)]),
+  R('r-steel-pipe','Steel Pipe','constructor',6,[io('steel-ingot',3)],[io('steel-pipe',2)]),
+  R('r-quickwire','Quickwire','constructor',5,[io('caterium-ingot',1)],[io('quickwire',5)]),
+  R('r-quartz-crystal','Quartz Crystal','constructor',8,[io('raw-quartz',5)],[io('quartz-crystal',3)]),
+  R('r-silica','Silica','constructor',8,[io('raw-quartz',3)],[io('silica',5)]),
+  R('r-aluminum-casing','Aluminum Casing','constructor',2,[io('aluminum-ingot',3)],[io('aluminum-casing',2)]),
+  R('r-empty-canister','Empty Canister','constructor',4,[io('plastic',2)],[io('empty-canister',4)]),
+  R('r-iron-rebar','Iron Rebar','constructor',4,[io('iron-rod',1)],[io('iron-rebar',1)]),
+  R('r-alclad-sheet','Alclad Aluminum Sheet','assembler',6,[io('aluminum-ingot',3),io('copper-ingot',1)],[io('alclad-sheet',3)]),
+  // ── Assembler ──
+  R('r-rip','Reinforced Iron Plate','assembler',12,[io('iron-plate',6),io('screw',12)],[io('reinforced-iron-plate',1)]),
+  R('r-rotor','Rotor','assembler',15,[io('iron-rod',5),io('screw',25)],[io('rotor',1)]),
+  R('r-modular-frame','Modular Frame','assembler',60,[io('reinforced-iron-plate',3),io('iron-rod',12)],[io('modular-frame',2)]),
+  R('r-stator','Stator','assembler',12,[io('steel-pipe',3),io('wire',8)],[io('stator',1)]),
+  R('r-motor','Motor','assembler',12,[io('rotor',2),io('stator',2)],[io('motor',1)]),
+  R('r-eib','Encased Industrial Beam','assembler',10,[io('steel-beam',4),io('concrete',5)],[io('encased-industrial-beam',1)]),
+  R('r-circuit-board','Circuit Board','assembler',8,[io('copper-sheet',2),io('plastic',4)],[io('circuit-board',1)]),
+  R('r-ai-limiter','AI Limiter','assembler',12,[io('copper-sheet',5),io('quickwire',20)],[io('ai-limiter',1)]),
+  R('r-automated-wiring','Automated Wiring','assembler',24,[io('stator',1),io('cable',20)],[io('automated-wiring',1)]),
+  R('r-versatile-framework','Versatile Framework','assembler',24,[io('modular-frame',1),io('steel-beam',12)],[io('versatile-framework',2)]),
+  R('r-heat-sink','Heat Sink','assembler',8,[io('alclad-sheet',5),io('copper-sheet',3)],[io('heat-sink',1)]),
+  R('r-emcr','Electromagnetic Control Rod','assembler',30,[io('stator',3),io('ai-limiter',2)],[io('electromagnetic-control-rod',2)]),
+  // ── Manufacturer ──
+  R('r-hmf','Heavy Modular Frame','manufacturer',30,
+    [io('modular-frame',5),io('steel-pipe',15),io('encased-industrial-beam',5),io('screw',100)],
+    [io('heavy-modular-frame',1)]),
+  R('r-computer','Computer','manufacturer',24,
+    [io('circuit-board',10),io('cable',9),io('plastic',18),io('screw',52)],
+    [io('computer',1)]),
+  R('r-crystal-oscillator','Crystal Oscillator','manufacturer',120,
+    [io('quartz-crystal',36),io('cable',28),io('reinforced-iron-plate',5)],
+    [io('crystal-oscillator',2)]),
+  R('r-high-speed-connector','High-Speed Connector','manufacturer',16,
+    [io('quickwire',56),io('cable',10),io('circuit-board',1)],
+    [io('high-speed-connector',1)]),
+  R('r-smart-plating','Smart Plating','manufacturer',30,
+    [io('reinforced-iron-plate',1),io('rotor',1),io('plastic',1)],
+    [io('smart-plating',1)]),
+  R('r-rcu','Radio Control Unit','manufacturer',48,
+    [io('aluminum-casing',40),io('crystal-oscillator',1),io('computer',1)],
+    [io('radio-control-unit',2)]),
+  R('r-supercomputer','Supercomputer','manufacturer',32,
+    [io('computer',4),io('ai-limiter',2),io('high-speed-connector',3),io('plastic',28)],
+    [io('supercomputer',1)]),
+  R('r-modular-engine','Modular Engine','manufacturer',60,
+    [io('motor',2),io('rubber',15),io('smart-plating',2)],
+    [io('modular-engine',1)]),
+  R('r-acu','Adaptive Control Unit','manufacturer',120,
+    [io('automated-wiring',15),io('circuit-board',10),io('heavy-modular-frame',2),io('computer',2)],
+    [io('adaptive-control-unit',2)]),
+  R('r-turbo-motor','Turbo Motor','manufacturer',32,
+    [io('motor',4),io('cooling-system',2),io('radio-control-unit',2),io('rubber',28)],
+    [io('turbo-motor',1)]),
+  R('r-uranium-fuel-rod','Uranium Fuel Rod','manufacturer',150,
+    [io('encased-uranium-cell',50),io('encased-industrial-beam',3),io('electromagnetic-control-rod',5)],
+    [io('uranium-fuel-rod',1)]),
+  // ── Refinery ──
+  R('r-plastic','Plastic','refinery',6,[io('crude-oil',3)],[io('plastic',2),io('heavy-oil-residue',1)]),
+  R('r-rubber','Rubber','refinery',6,[io('crude-oil',3)],[io('rubber',2),io('heavy-oil-residue',2)]),
+  R('r-fuel','Fuel','refinery',6,[io('crude-oil',6)],[io('fuel',4),io('polymer-resin',3)]),
+  R('r-petroleum-coke','Petroleum Coke','refinery',6,[io('heavy-oil-residue',4)],[io('petroleum-coke',12)]),
+  R('r-residual-plastic','Residual Plastic','refinery',6,[io('polymer-resin',6),io('water',2)],[io('plastic',2)]),
+  R('r-residual-rubber','Residual Rubber','refinery',6,[io('polymer-resin',4),io('water',4)],[io('rubber',2)]),
+  R('r-residual-fuel','Residual Fuel','refinery',6,[io('heavy-oil-residue',6)],[io('fuel',4)]),
+  R('r-turbofuel','Turbofuel','refinery',16,[io('fuel',6),io('coal',5)],[io('turbofuel',5)]),
+  R('r-sulfuric-acid','Sulfuric Acid','refinery',6,[io('sulfur',5),io('water',5)],[io('sulfuric-acid',5)]),
+  R('r-alumina-solution','Alumina Solution','refinery',6,[io('bauxite',12),io('water',18)],[io('alumina-solution',12),io('silica',5)]),
+  R('r-aluminum-scrap','Aluminum Scrap','refinery',1,[io('alumina-solution',4),io('coal',2)],[io('aluminum-scrap',6),io('water',2)]),
+  // ── Blender ──
+  R('r-cooling-system','Cooling System','blender',10,
+    [io('aluminum-casing',9),io('rubber',28),io('water',17),io('nitrogen-gas',2)],
+    [io('cooling-system',1)]),
+  R('r-battery','Battery','blender',6,
+    [io('sulfuric-acid',6),io('aluminum-casing',7),io('plastic',8)],
+    [io('battery',4)]),
+  R('r-nitric-acid','Nitric Acid','blender',8/3,
+    [io('nitrogen-gas',12),io('water',3),io('iron-plate',1)],
+    [io('nitric-acid',3)]),
+  R('r-fused-modular-frame','Fused Modular Frame','blender',40,
+    [io('heavy-modular-frame',1),io('aluminum-casing',50),io('nitric-acid',25),io('fuel',40)],
+    [io('fused-modular-frame',1)]),
+  R('r-encased-uranium-cell','Encased Uranium Cell','blender',12,
+    [io('uranium',10),io('concrete',3),io('sulfuric-acid',8)],
+    [io('encased-uranium-cell',5)]),
+  R('r-non-fissile-uranium','Non-fissile Uranium','blender',24,
+    [io('uranium',15),io('silica',10),io('nitric-acid',6),io('sulfuric-acid',6)],
+    [io('non-fissile-uranium',20)]),
+  // ── Miners (normal node: Mk1=60, Mk2=120, Mk3=240 /min) ──
+  ...['iron-ore','copper-ore','limestone','coal','caterium-ore','raw-quartz','sulfur','bauxite','uranium','sam'].flatMap(ore=>{
+    const n = ITEMS.find(x=>x.id===ore)?.name || ore;
+    return [
+      R(`mine-${ore}-mk1`, `Mine ${n} (Mk.1)`, 'miner-mk1', 1, [], [io(ore,1)]),
+      R(`mine-${ore}-mk2`, `Mine ${n} (Mk.2)`, 'miner-mk2', 1, [], [io(ore,2)]),
+      R(`mine-${ore}-mk3`, `Mine ${n} (Mk.3)`, 'miner-mk3', 1, [], [io(ore,4)]),
+    ];
+  }),
+  // ── Fluid / Gas Extractors ──
+  R('extract-crude-oil-n','Extract Crude Oil (Normal)','oil-extractor',1,[],[io('crude-oil',2)]),
+  R('extract-crude-oil-p','Extract Crude Oil (Pure)','oil-extractor',1,[],[io('crude-oil',4)]),
+  R('extract-crude-oil-i','Extract Crude Oil (Impure)','oil-extractor',1,[],[io('crude-oil',1)]),
+  R('extract-water','Extract Water','water-extractor',1,[],[io('water',2)]),
+  R('extract-nitrogen-n','Extract Nitrogen Gas (Normal)','resource-well-pressurizer',1,[],[io('nitrogen-gas',1)]),
+  R('extract-nitrogen-p','Extract Nitrogen Gas (Pure)','resource-well-pressurizer',1,[],[io('nitrogen-gas',2)]),
+  // ── Particle Accelerator ──
+  R('r-plutonium-pellet','Plutonium Pellet','particle-accelerator',60,
+    [io('non-fissile-uranium',100),io('uranium-fuel-rod',0.1)],
+    [io('plutonium-pellet',30)]),
+
+  // ══ ALTERNATE RECIPES ══
+  // Ingots
+  R('alt-iron-alloy-ingot','Iron Alloy Ingot','foundry',6,[io('iron-ore',2),io('copper-ore',2)],[io('iron-ingot',5)],true),
+  R('alt-copper-alloy-ingot','Copper Alloy Ingot','foundry',12,[io('copper-ore',10),io('iron-ore',5)],[io('copper-ingot',20)],true),
+  R('alt-solid-steel-ingot','Solid Steel Ingot','foundry',3,[io('iron-ingot',2),io('coal',2)],[io('steel-ingot',3)],true),
+  R('alt-coke-steel-ingot','Coke Steel Ingot','foundry',12,[io('iron-ore',15),io('petroleum-coke',15)],[io('steel-ingot',20)],true),
+  R('alt-pure-iron-ingot','Pure Iron Ingot','refinery',12,[io('iron-ore',7),io('water',4)],[io('iron-ingot',13)],true),
+  R('alt-pure-copper-ingot','Pure Copper Ingot','refinery',24,[io('copper-ore',6),io('water',4)],[io('copper-ingot',15)],true),
+  R('alt-pure-caterium-ingot','Pure Caterium Ingot','refinery',5,[io('caterium-ore',2),io('water',2)],[io('caterium-ingot',1)],true),
+  // Wire / Cable
+  R('alt-iron-wire','Iron Wire','constructor',24,[io('iron-ingot',5)],[io('wire',9)],true),
+  R('alt-caterium-wire','Caterium Wire','constructor',4,[io('caterium-ingot',1)],[io('wire',8)],true),
+  R('alt-fused-wire','Fused Wire','assembler',20,[io('copper-ingot',4),io('caterium-ingot',1)],[io('wire',30)],true),
+  R('alt-insulated-cable','Insulated Cable','assembler',12,[io('wire',9),io('rubber',6)],[io('cable',20)],true),
+  R('alt-quickwire-cable','Quickwire Cable','assembler',24,[io('quickwire',3),io('rubber',2)],[io('cable',11)],true),
+  R('alt-coated-cable','Coated Cable','assembler',8,[io('wire',5),io('heavy-oil-residue',2)],[io('cable',9)],true),
+  // Iron Plate / RIP
+  R('alt-coated-iron-plate','Coated Iron Plate','assembler',12,[io('iron-plate',10),io('plastic',2)],[io('iron-plate',15)],true),
+  R('alt-stitched-iron-plate','Stitched Iron Plate','assembler',32,[io('iron-plate',10),io('wire',20)],[io('reinforced-iron-plate',3)],true),
+  R('alt-bolted-iron-plate','Bolted Iron Plate','assembler',12,[io('iron-plate',18),io('screw',50)],[io('reinforced-iron-plate',3)],true),
+  // Modular Frame
+  R('alt-steeled-frame','Steeled Frame','assembler',60,[io('reinforced-iron-plate',2),io('steel-pipe',10)],[io('modular-frame',3)],true),
+  R('alt-bolted-frame','Bolted Frame','assembler',24,[io('reinforced-iron-plate',3),io('screw',56)],[io('modular-frame',2)],true),
+  // Rotor
+  R('alt-copper-rotor','Copper Rotor','assembler',16,[io('copper-sheet',6),io('screw',52)],[io('rotor',3)],true),
+  R('alt-steel-rotor','Steel Rotor','assembler',12,[io('steel-pipe',2),io('wire',6)],[io('rotor',1)],true),
+  // Stator / Motor
+  R('alt-quickwire-stator','Quickwire Stator','assembler',15,[io('steel-pipe',4),io('quickwire',15)],[io('stator',2)],true),
+  R('alt-rigour-motor','Rigour Motor','assembler',48,[io('rotor',3),io('stator',3),io('crystal-oscillator',1)],[io('motor',6)],true),
+  // Circuit Board
+  R('alt-silicon-circuit-board','Silicon Circuit Board','assembler',24,[io('copper-sheet',11),io('silica',11)],[io('circuit-board',5)],true),
+  R('alt-electrode-circuit-board','Electrode Circuit Board','assembler',12,[io('rubber',6),io('petroleum-coke',9)],[io('circuit-board',1)],true),
+  // Computer
+  R('alt-crystal-computer','Crystal Computer','manufacturer',64,[io('circuit-board',8),io('crystal-oscillator',3)],[io('computer',3)],true),
+  R('alt-caterium-computer','Caterium Computer','manufacturer',16,[io('circuit-board',7),io('quickwire',28),io('rubber',12)],[io('computer',1)],true),
+  // HMF
+  R('alt-heavy-flexible-frame','Heavy Flexible Frame','manufacturer',16,[io('modular-frame',5),io('encased-industrial-beam',3),io('rubber',20),io('screw',104)],[io('heavy-modular-frame',1)],true),
+  R('alt-heavy-encased-frame','Heavy Encased Frame','manufacturer',64,[io('modular-frame',8),io('encased-industrial-beam',10),io('steel-pipe',36),io('concrete',22)],[io('heavy-modular-frame',3)],true),
+  // Supercomputer
+  R('alt-super-state-computer','Super-State Computer','manufacturer',50,[io('computer',3),io('electromagnetic-control-rod',2),io('battery',20),io('wire',45)],[io('supercomputer',2)],true),
+  // Steel
+  R('alt-encased-industrial-pipe','Encased Industrial Pipe','assembler',15,[io('steel-pipe',7),io('concrete',5)],[io('encased-industrial-beam',1)],true),
+  R('alt-steel-screw','Steel Screw','constructor',12,[io('steel-beam',1)],[io('screw',52)],true),
+  R('alt-cast-screw','Cast Screw','constructor',24,[io('iron-ingot',5)],[io('screw',20)],true),
+  // Plastic / Rubber
+  R('alt-recycled-plastic','Recycled Plastic','refinery',12,[io('rubber',6),io('fuel',6)],[io('plastic',12)],true),
+  R('alt-recycled-rubber','Recycled Rubber','refinery',12,[io('plastic',6),io('fuel',6)],[io('rubber',12)],true),
+  // Cooling / Battery
+  R('alt-heat-exchanger','Heat Exchanger','blender',6,[io('aluminum-casing',5),io('nitrogen-gas',6)],[io('cooling-system',1)],true),
+];
+
+// ════════════════════════════════════════════════════════
+//  INITIALISE LOOKUP MAPS
+// ════════════════════════════════════════════════════════
+let IMAP={}, RMAP={}, BY_OUT={}, BY_IN={}, DEF_REC={}, BMAP={}, BY_BLDG={};
+
+function initData(){
+  // Deduplicate items by id
+  const seen=new Set();
+  for(const it of ITEMS){
+    if(seen.has(it.id)) continue;
+    seen.add(it.id);
+    IMAP[it.id]=it;
+  }
+  for(const b of BUILDINGS){ BMAP[b.id]=b; BY_BLDG[b.id]=[]; }
+  for(const r of RECIPES){
+    RMAP[r.id]=r;
+    for(const o of r.outputs){
+      if(!BY_OUT[o.item]) BY_OUT[o.item]=[];
+      BY_OUT[o.item].push(r);
+    }
+    for(const inp of r.inputs){
+      if(!BY_IN[inp.item]) BY_IN[inp.item]=[];
+      BY_IN[inp.item].push(r);
+    }
+    if(!BY_BLDG[r.machine]) BY_BLDG[r.machine]=[];
+    BY_BLDG[r.machine].push(r);
+  }
+  // Default recipe: first non-alternate per output item
+  for(const itemId in BY_OUT){
+    const std=BY_OUT[itemId].filter(r=>!r.isAlternate);
+    DEF_REC[itemId]=(std.length>0?std[0]:BY_OUT[itemId][0]).id;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+const S={
+  mode:'target',
+  targetItem:'',
+  targetRate:60,
+  overrides:{},   // itemId -> recipeId
+  chain:null,
+  machines:[],    // [{id,buildingId,recipeId,count}]
+  nextMid:1,
+  filter:'',
+  browserItem:null,
+};
+
+// ════════════════════════════════════════════════════════
+//  FORMATTING
+// ════════════════════════════════════════════════════════
+function fmt(n){
+  if(n===0) return '0';
+  const a=Math.abs(n);
+  if(a>=10000) return n.toFixed(0);
+  if(a>=1000)  return n.toFixed(1);
+  if(a>=100)   return n.toFixed(2);
+  if(a>=10)    return n.toFixed(3).replace(/\.?0+$/,'');
+  return n.toFixed(4).replace(/\.?0+$/,'');
+}
+function fmtM(n){
+  // machine count: exact + ceiling in parens if not whole
+  const c=Math.ceil(n-1e-9);
+  const exact=fmt(n);
+  if(Math.abs(n-c)<1e-6) return `×${exact}`;
+  return `×${exact} <span style="color:var(--yellow)">(need ${c})</span>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  CALCULATION — MODE 1 (chain resolver)
+// ════════════════════════════════════════════════════════
+function resolveChain(itemId, rate, overrides, depth=0){
+  const item=IMAP[itemId];
+  if(!item||depth>30) return {type:'raw',itemId,rate,item:item||{id:itemId,name:itemId}};
+  if(item.isRaw) return {type:'raw',itemId,rate,item};
+
+  const recipeId=overrides[itemId]||DEF_REC[itemId];
+  if(!recipeId) return {type:'raw',itemId,rate,item};
+
+  const recipe=RMAP[recipeId];
+  const out=recipe.outputs.find(o=>o.item===itemId);
+  const outRatePerMach=(out.amount*60)/recipe.duration;
+  const machCount=rate/outRatePerMach;
+  const bldg=BMAP[recipe.machine];
+
+  const node={
+    type:'production', itemId, rate, recipe, machCount,
+    power:machCount*(bldg?bldg.power:0),
+    item, bldg, children:[],
+  };
+
+  for(const inp of recipe.inputs){
+    const inpRate=(inp.amount*60)/recipe.duration*machCount;
+    node.children.push(resolveChain(inp.item,inpRate,overrides,depth+1));
+  }
+  return node;
+}
+
+function flattenChain(node, acc={mach:{},raw:{},power:0,byproducts:{}}){
+  if(node.type==='raw'){
+    acc.raw[node.itemId]=(acc.raw[node.itemId]||0)+node.rate;
+    return acc;
+  }
+  // Aggregate machine usage by recipe
+  const key=node.recipe.id;
+  if(!acc.mach[key]){
+    acc.mach[key]={recipe:node.recipe,bldg:node.bldg,count:0,power:0};
+  }
+  acc.mach[key].count+=node.machCount;
+  acc.mach[key].power+=node.power;
+  acc.power+=node.power;
+  // Secondary outputs (byproducts)
+  for(const o of node.recipe.outputs){
+    if(o.item===node.itemId) continue;
+    const byRate=(o.amount*60)/node.recipe.duration*node.machCount;
+    acc.byproducts[o.item]=(acc.byproducts[o.item]||0)+byRate;
+  }
+  for(const ch of node.children) flattenChain(ch,acc);
+  return acc;
+}
+
+// ════════════════════════════════════════════════════════
+//  CALCULATION — MODE 2 (machine builder)
+// ════════════════════════════════════════════════════════
+function calcBuilder(){
+  const out={}, inp={};
+  let power=0;
+  for(const m of S.machines){
+    const r=RMAP[m.recipeId]; const b=BMAP[m.buildingId];
+    if(!r||!b) continue;
+    power+=m.count*b.power;
+    for(const o of r.outputs){ const rt=(o.amount*60)/r.duration*m.count; out[o.item]=(out[o.item]||0)+rt; }
+    for(const i of r.inputs){  const rt=(i.amount*60)/r.duration*m.count; inp[i.item]=(inp[i.item]||0)+rt; }
+  }
+  const all=new Set([...Object.keys(out),...Object.keys(inp)]);
+  const net={};
+  for(const id of all) net[id]=(out[id]||0)-(inp[id]||0);
+  return {out,inp,net,power};
+}
+
+// ════════════════════════════════════════════════════════
+//  RENDER — BROWSER
+// ════════════════════════════════════════════════════════
+const CAT_ORDER=['raw','ingot','basic','standard','industrial','petroleum','liquid','gas','nuclear'];
+const CAT_LABELS={raw:'Raw Resources',ingot:'Ingots',basic:'Basic Parts',standard:'Standard Parts',
+  industrial:'Industrial Parts',petroleum:'Petroleum',liquid:'Liquids & Solutions',gas:'Gas',nuclear:'Nuclear'};
+
+function renderBrowser(){
+  const q=S.filter.toLowerCase();
+  const list=document.getElementById('item-list');
+  const groups={};
+  const allItems=Object.values(IMAP);
+  for(const it of allItems){
+    if(q&&!it.name.toLowerCase().includes(q)) continue;
+    if(!groups[it.cat]) groups[it.cat]=[];
+    groups[it.cat].push(it);
+  }
+  let html='';
+  for(const cat of CAT_ORDER){
+    const grp=groups[cat];
+    if(!grp||!grp.length) continue;
+    html+=`<div class="grp-lbl">${CAT_LABELS[cat]||cat}</div>`;
+    grp.sort((a,b)=>a.name.localeCompare(b.name));
+    for(const it of grp){
+      const sel=S.browserItem===it.id?' sel':'';
+      html+=`<div class="item-row${sel}" onclick="selectBrowserItem('${it.id}')">
+        <span class="dot c-${it.cat}"></span>${esc(it.name)}</div>`;
+    }
+  }
+  list.innerHTML=html||'<div style="padding:12px;color:var(--muted);font-size:12px">No items found</div>';
+  renderBrowserDetail();
+}
+
+function renderBrowserDetail(){
+  const el=document.getElementById('item-detail');
+  if(!S.browserItem){el.style.display='none';return;}
+  const item=IMAP[S.browserItem];
+  if(!item){el.style.display='none';return;}
+  el.style.display='block';
+
+  const produces=(BY_OUT[item.id]||[]);
+  const consumes=(BY_IN[item.id]||[]);
+
+  let h=`<div class="det-name">${esc(item.name)}</div>`;
+  if(item.isRaw){
+    h+=`<div style="font-size:11px;color:var(--muted)">Raw resource — extracted from the world.</div>`;
+  }
+  if(produces.length){
+    h+=`<div class="det-sec">Produced by</div>`;
+    for(const r of produces) h+=recipeCardHTML(r,item.id);
+  }
+  if(consumes.length){
+    h+=`<div class="det-sec">Used in</div>`;
+    for(const r of consumes) h+=recipeCardHTML(r,null);
+  }
+  el.innerHTML=h;
+}
+
+function recipeCardHTML(r, highlightItem){
+  const bldg=BMAP[r.machine];
+  let io_html='';
+  const inp=r.inputs.map(i=>`<span class="chip"><span class="chip-n">${fmt((i.amount*60)/r.duration)}</span>/min ${esc(IMAP[i.item]?.name||i.item)}</span>`).join('<span style="color:var(--muted);margin:0 2px">+</span>');
+  const out=r.outputs.map((o,idx)=>`<span class="chip${idx>0?' chip-byp':''}"><span class="chip-n">${fmt((o.amount*60)/r.duration)}</span>/min ${esc(IMAP[o.item]?.name||o.item)}</span>`).join('<span style="color:var(--muted);margin:0 2px">+</span>');
+  return `<div class="rcard${r.isAlternate?' alt':''}">
+    <div class="rcard-name">${r.isAlternate?'<span class="alt-badge">ALT</span>':''}${esc(r.name)}</div>
+    <span class="rcard-machine">${bldg?bldg.name:r.machine}</span>
+    <div class="rcard-row">${inp}<span class="rcard-arrow">→</span>${out}</div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  RENDER — PLANNER TOOLBAR
+// ════════════════════════════════════════════════════════
+function renderPlannerBar(){
+  const bar=document.getElementById('plan-bar');
+  if(S.mode==='target'){
+    // Sorted item list (items that have recipes)
+    const itemsWithRecipes=Object.keys(DEF_REC).map(id=>IMAP[id]).filter(Boolean)
+      .sort((a,b)=>a.name.localeCompare(b.name));
+    const opts=itemsWithRecipes.map(it=>
+      `<option value="${it.id}"${it.id===S.targetItem?' selected':''}>${esc(it.name)}</option>`
+    ).join('');
+    bar.innerHTML=`
+      <select class="isel" id="target-item" onchange="S.targetItem=this.value">
+        <option value="">— Select item to produce —</option>${opts}
+      </select>
+      <input class="ninput" id="target-rate" type="number" min="0.001" step="any"
+             value="${S.targetRate}" onchange="S.targetRate=+this.value||1">
+      <span class="unit">/min</span>
+      <button class="go-btn" onclick="doCalculate()">Calculate</button>`;
+  } else {
+    bar.innerHTML=`<div style="font-size:12px;color:var(--dim)">Add machines below — outputs and inputs update automatically.</div>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  RENDER — PRODUCTION TREE (Mode 1)
+// ════════════════════════════════════════════════════════
+function renderTree(){
+  const el=document.getElementById('tree');
+  if(S.mode==='target'){
+    if(!S.chain){
+      el.innerHTML=`<div class="empty">
+        <div class="empty-ico">⚙️</div>
+        <div class="empty-ttl">Select an item and target rate</div>
+        <div class="empty-sub">then click Calculate to see the full production chain</div>
+      </div>`; return;
+    }
+    el.innerHTML=nodeHTML(S.chain);
+  } else {
+    renderBuilder(el);
+  }
+}
+
+function nodeHTML(node){
+  if(node.type==='raw'){
+    return `<div class="tnode">
+      <div class="thead raw-node">
+        <span class="tname">${esc(node.item.name)}</span>
+        <span class="trate">${fmt(node.rate)}/min</span>
+        <span class="raw-tag">RAW</span>
+      </div>
+    </div>`;
+  }
+  const recipes=BY_OUT[node.itemId]||[];
+  let rsel='';
+  if(recipes.length>1){
+    const opts=recipes.map(r=>`<option value="${r.id}"${r.id===node.recipe.id?' selected':''}>${r.isAlternate?'★ ':''}${esc(r.name)}</option>`).join('');
+    rsel=`<select class="trsel" onclick="event.stopPropagation()"
+      onchange="setOverride('${esc(node.itemId)}',this.value)">${opts}</select>`;
+  }
+  const children=node.children.map(c=>nodeHTML(c)).join('');
+  return `<div class="tnode">
+    <div class="thead">
+      <span class="tname">${esc(node.item.name)}</span>
+      ${rsel}
+      <span class="trate">${fmt(node.rate)}/min</span>
+      <span class="tmach">${fmtM(node.machCount)} ${esc(node.bldg?node.bldg.name:node.recipe.machine)}</span>
+      <span class="tpow">⚡${fmt(node.power)} MW</span>
+    </div>
+    ${children?`<div class="tchildren">${children}</div>`:''}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  RENDER — MACHINE BUILDER (Mode 2)
+// ════════════════════════════════════════════════════════
+function renderBuilder(el){
+  let html=`<div style="padding:14px"><div class="mach-list">`;
+  for(const m of S.machines){
+    const bldgOpts=BUILDINGS.map(b=>
+      `<option value="${b.id}"${b.id===m.buildingId?' selected':''}>${esc(b.name)}</option>`
+    ).join('');
+    const recs=BY_BLDG[m.buildingId]||[];
+    const recOpts=recs.map(r=>
+      `<option value="${r.id}"${r.id===m.recipeId?' selected':''}>${r.isAlternate?'★ ':''}${esc(r.name)}</option>`
+    ).join('');
+    html+=`<div class="mrow">
+      <select class="msel" onchange="setBuildingId(${m.id},this.value)">
+        <option value="">— Building —</option>${bldgOpts}
+      </select>
+      <select class="msel" onchange="setMRecipe(${m.id},this.value)" style="flex:1;min-width:0">
+        <option value="">— Recipe —</option>${recOpts}
+      </select>
+      <span class="mlbl">×</span>
+      <input class="mcount" type="number" min="0" step="1" value="${m.count}"
+             onchange="setMCount(${m.id},+this.value)">
+      <button class="mrem" onclick="removeMachine(${m.id})">✕</button>
+    </div>`;
+  }
+  html+=`</div>
+    <button class="add-row" style="margin-top:8px" onclick="addMachine()">+ Add Machine</button>
+  </div>`;
+  el.innerHTML=html;
+}
+
+// ════════════════════════════════════════════════════════
+//  RENDER — RESULTS PANEL
+// ════════════════════════════════════════════════════════
+function renderResults(){
+  const el=document.getElementById('res-body');
+  if(S.mode==='target'){
+    if(!S.chain){el.innerHTML='<div style="padding:16px;color:var(--muted);font-size:12px">Nothing calculated yet.</div>';return;}
+    const {mach,raw,power,byproducts}=flattenChain(S.chain);
+    let h='';
+
+    // Machines section
+    h+=`<div class="rsec-ttl">Machines</div>`;
+    const machArr=Object.values(mach).sort((a,b)=>(b.count*b.bldg.power)-(a.count*a.bldg.power));
+    for(const m of machArr){
+      const ceil=Math.ceil(m.count-1e-9);
+      const bname=m.bldg?m.bldg.name:m.recipe.machine;
+      h+=`<div class="mach-blk">
+        <div class="mach-blk-name"><span style="color:var(--accent)">${ceil}×</span> ${esc(bname)}</div>
+        <div class="mach-blk-detail">${esc(m.recipe.name)} · ${fmt(m.count)} exact · ⚡${fmt(m.power)} MW</div>
+      </div>`;
+    }
+
+    // Byproducts
+    const bpArr=Object.entries(byproducts).filter(([,v])=>v>0.001);
+    if(bpArr.length){
+      h+=`<div class="rsec-ttl">Byproducts</div>`;
+      for(const [id,rate] of bpArr){
+        const item=IMAP[id];
+        h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
+          <span class="rrow-val col-g">+${fmt(rate)}<span class="col-d">/min</span></span></div>`;
+      }
+    }
+
+    // Raw resources
+    h+=`<div class="rsec-ttl">Raw Resources Needed</div>`;
+    const rawArr=Object.entries(raw).sort((a,b)=>b[1]-a[1]);
+    for(const [id,rate] of rawArr){
+      const item=IMAP[id];
+      h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
+        <span class="rrow-val col-o">${fmt(rate)}<span class="col-d">/min</span></span></div>`;
+    }
+
+    // Power
+    h+=`<div class="rsec-ttl">Power</div>
+      <div class="pow-box"><span class="pow-lbl">Total draw</span><span class="pow-val">${fmt(power)} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
+    el.innerHTML=h;
+
+  } else {
+    // Mode 2
+    if(!S.machines.length){el.innerHTML='<div style="padding:16px;color:var(--muted);font-size:12px">Add machines to see results.</div>';return;}
+    const {out,inp,net,power}=calcBuilder();
+    let h='';
+
+    // Net flows
+    const surplus=[],deficit=[],balanced=[];
+    for(const [id,n] of Object.entries(net)){
+      if(n>0.001) surplus.push([id,n]);
+      else if(n<-0.001) deficit.push([id,-n]);
+      else balanced.push(id);
+    }
+    surplus.sort((a,b)=>b[1]-a[1]);
+    deficit.sort((a,b)=>b[1]-a[1]);
+
+    if(surplus.length){
+      h+=`<div class="rsec-ttl">Outputs (surplus)</div>`;
+      for(const [id,rate] of surplus){
+        const item=IMAP[id];
+        h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
+          <span class="rrow-val surplus">+${fmt(rate)}<span class="col-d">/min</span></span></div>`;
+      }
+    }
+    if(deficit.length){
+      h+=`<div class="rsec-ttl">Inputs needed</div>`;
+      for(const [id,rate] of deficit){
+        const item=IMAP[id];
+        h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
+          <span class="rrow-val deficit">−${fmt(rate)}<span class="col-d">/min</span></span></div>`;
+      }
+    }
+    if(balanced.length){
+      h+=`<div class="rsec-ttl">Balanced internally</div>`;
+      for(const id of balanced){
+        const item=IMAP[id];
+        h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
+          <span class="rrow-val balanced">✓</span></div>`;
+      }
+    }
+    h+=`<div class="rsec-ttl">Power</div>
+      <div class="pow-box"><span class="pow-lbl">Total draw</span><span class="pow-val">${fmt(power)} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
+    el.innerHTML=h;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  EVENT HANDLERS
+// ════════════════════════════════════════════════════════
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function setMode(mode){
+  S.mode=mode;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('on',b.dataset.mode===mode));
+  renderPlannerBar();
+  renderTree();
+  renderResults();
+}
+
+function filterBrowser(q){
+  S.filter=q;
+  renderBrowser();
+}
+
+function selectBrowserItem(id){
+  S.browserItem=(S.browserItem===id?null:id);
+  renderBrowser();
+  // Also set target item in Mode 1 if item has a recipe
+  if(S.mode==='target'&&id&&DEF_REC[id]){
+    const sel=document.getElementById('target-item');
+    if(sel){ sel.value=id; S.targetItem=id; }
+  }
+}
+
+function doCalculate(){
+  const sel=document.getElementById('target-item');
+  const rate=document.getElementById('target-rate');
+  S.targetItem=sel?sel.value:S.targetItem;
+  S.targetRate=rate?+rate.value||60:S.targetRate;
+  if(!S.targetItem) return;
+  S.chain=resolveChain(S.targetItem,S.targetRate,S.overrides);
+  renderTree();
+  renderResults();
+}
+
+function setOverride(itemId,recipeId){
+  S.overrides[itemId]=recipeId;
+  if(S.targetItem){
+    S.chain=resolveChain(S.targetItem,S.targetRate,S.overrides);
+    renderTree();
+    renderResults();
+  }
+}
+
+// Mode 2
+function addMachine(){
+  S.machines.push({id:S.nextMid++,buildingId:'manufacturer',recipeId:'',count:1});
+  renderTree();
+  renderResults();
+}
+
+function removeMachine(id){
+  S.machines=S.machines.filter(m=>m.id!==id);
+  renderTree();
+  renderResults();
+}
+
+function setBuildingId(id,bid){
+  const m=S.machines.find(m=>m.id===id);
+  if(!m) return;
+  m.buildingId=bid;
+  m.recipeId=''; // reset recipe when building changes
+  renderTree();
+  renderResults();
+}
+
+function setMRecipe(id,rid){
+  const m=S.machines.find(m=>m.id===id);
+  if(m){ m.recipeId=rid; renderResults(); }
+}
+
+function setMCount(id,n){
+  const m=S.machines.find(m=>m.id===id);
+  if(m){ m.count=Math.max(0,n)||0; renderResults(); }
+}
+
+// ════════════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════════════
+initData();
+renderBrowser();
+renderPlannerBar();
+renderTree();
+renderResults();
+</script>
+</body>
+</html>
