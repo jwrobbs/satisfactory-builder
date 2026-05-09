@@ -1039,18 +1039,59 @@ function setBuildingId(id,bid){
 
 function setMRecipe(id,rid){
   const m=S.machines.find(m=>m.id===id);
-  if(m){ m.recipeId=rid; renderResults(); }
+  if(m){ m.recipeId=rid; renderResults(); saveURL(); }
 }
 
 function setMCount(id,n){
   const m=S.machines.find(m=>m.id===id);
-  if(m){ m.count=Math.max(0,n)||0; renderResults(); }
+  if(m){ m.count=Math.max(0,n)||0; renderResults(); saveURL(); }
+}
+
+// ════════════════════════════════════════════════════════
+//  URL STATE  (hash-based so it works as a static file)
+// ════════════════════════════════════════════════════════
+function saveURL(){
+  const p=new URLSearchParams();
+  p.set('mode',S.mode);
+  if(S.mode==='target'){
+    if(S.targetItem) p.set('item',S.targetItem);
+    p.set('rate',S.targetRate);
+    const ov=Object.entries(S.overrides);
+    if(ov.length) p.set('ov',ov.map(([k,v])=>k+'~'+v).join(','));
+  } else {
+    if(S.machines.length)
+      p.set('m',S.machines.map(m=>[m.buildingId,m.recipeId,m.count].join('|')).join(','));
+  }
+  history.replaceState(null,'','#'+p.toString());
+}
+
+function loadURL(){
+  const hash=location.hash.slice(1);
+  if(!hash) return;
+  const p=new URLSearchParams(hash);
+  S.mode=p.get('mode')||'target';
+  if(S.mode==='target'){
+    S.targetItem=p.get('item')||'';
+    S.targetRate=parseFloat(p.get('rate'))||60;
+    const ov=p.get('ov');
+    if(ov) ov.split(',').forEach(pair=>{const[k,v]=pair.split('~');if(k&&v)S.overrides[k]=v;});
+    if(S.targetItem) S.chain=resolveChain(S.targetItem,S.targetRate,S.overrides);
+  } else {
+    const m=p.get('m');
+    if(m) S.machines=m.split(',').map(part=>{
+      const[b,r,c]=part.split('|');
+      return{id:++S.nextMid,buildingId:b||'',recipeId:r||'',count:parseInt(c)||0};
+    });
+  }
+  // Sync mode buttons
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.mode));
 }
 
 // ════════════════════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════════════════════
 initData();
+loadURL();
 renderBrowser();
 renderPlannerBar();
 renderTree();
