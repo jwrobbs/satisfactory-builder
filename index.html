@@ -345,6 +345,14 @@ const ITEMS = [
   {id:'alumina-solution',name:'Alumina Solution',cat:'liquid'},
   {id:'sulfuric-acid',name:'Sulfuric Acid',cat:'liquid'},
   {id:'nitric-acid',name:'Nitric Acid',cat:'liquid'},
+  // Ammo / Explosives
+  {id:'black-powder',name:'Black Powder',cat:'basic'},
+  {id:'smokeless-powder',name:'Smokeless Powder',cat:'basic'},
+  {id:'compacted-coal',name:'Compacted Coal',cat:'basic'},
+  // Biofuel
+  {id:'solid-biofuel',name:'Solid Biofuel',cat:'petroleum'},
+  {id:'liquid-biofuel',name:'Liquid Biofuel',cat:'petroleum'},
+  {id:'biomass',name:'Biomass',cat:'petroleum'},
   // Nuclear
   {id:'encased-uranium-cell',name:'Encased Uranium Cell',cat:'nuclear'},
   {id:'electromagnetic-control-rod2',name:'Electromagnetic Control Rod',cat:'nuclear'}, // alias handled in recipes
@@ -365,9 +373,14 @@ const BUILDINGS = [
   {id:'blender',name:'Blender',power:75},
   {id:'packager',name:'Packager',power:10},
   {id:'particle-accelerator',name:'Particle Accelerator',power:1500},
-  {id:'nuclear-power-plant',name:'Nuclear Power Plant',power:2500},
   {id:'converter',name:'Converter',power:100},
   {id:'quantum-encoder',name:'Quantum Encoder',power:1000},
+  // Power generators (generates = MW produced, power = MW consumed by building itself)
+  {id:'biomass-burner',name:'Biomass Burner',power:0,generates:30},
+  {id:'coal-generator',name:'Coal Generator',power:0,generates:75},
+  {id:'fuel-generator',name:'Fuel Generator',power:0,generates:250},
+  {id:'nuclear-power-plant',name:'Nuclear Power Plant',power:0,generates:2500},
+  {id:'geothermal-generator',name:'Geothermal Generator',power:0,generates:200}, // variable; 200 avg normal node
   // Extractors
   {id:'miner-mk1',name:'Miner Mk.1',power:5},
   {id:'miner-mk2',name:'Miner Mk.2',power:12},
@@ -501,6 +514,30 @@ const RECIPES = [
   R('extract-water','Extract Water','water-extractor',1,[],[io('water',2)]),
   R('extract-nitrogen-n','Extract Nitrogen Gas (Normal)','resource-well-pressurizer',1,[],[io('nitrogen-gas',1)]),
   R('extract-nitrogen-p','Extract Nitrogen Gas (Pure)','resource-well-pressurizer',1,[],[io('nitrogen-gas',2)]),
+  // ── Explosives / Ammo ──
+  R('r-black-powder','Black Powder','assembler',4,[io('coal',1),io('sulfur',1)],[io('black-powder',2)]),
+  R('r-smokeless-powder','Smokeless Powder','refinery',6,[io('black-powder',2),io('heavy-oil-residue',1)],[io('smokeless-powder',2)]),
+  R('r-compacted-coal','Compacted Coal','assembler',12,[io('coal',2),io('sulfur',1)],[io('compacted-coal',4)]),
+  // ── Biofuel ──
+  R('r-solid-biofuel','Solid Biofuel','constructor',4,[io('biomass',8)],[io('solid-biofuel',4)]),
+  R('r-liquid-biofuel','Liquid Biofuel','refinery',4,[io('solid-biofuel',6),io('water',3)],[io('liquid-biofuel',4)]),
+  // ── Generator fuel recipes (inputs = fuel consumed, no item outputs) ──
+  // Biomass Burner (30 MW): 15 Solid Biofuel/min → duration=4, amount=1
+  R('gen-biomass-solidbiofuel','Solid Biofuel (30 MW)','biomass-burner',4,[io('solid-biofuel',1)],[]),
+  R('gen-biomass-biomass','Biomass (30 MW)','biomass-burner',2,[io('biomass',1)],[]),
+  // Coal Generator (75 MW): 15 Coal + 45 Water /min → duration=4, coal=1, water=3
+  R('gen-coal-coal','Coal (75 MW)','coal-generator',4,[io('coal',1),io('water',3)],[]),
+  R('gen-coal-coke','Petroleum Coke (75 MW)','coal-generator',12,[io('petroleum-coke',5),io('water',3)],[]),
+  R('gen-coal-compacted','Compacted Coal (75 MW)','coal-generator',8,[io('compacted-coal',1),io('water',3)],[]),
+  // Fuel Generator (250 MW): 20 Fuel/min → duration=3, amount=1
+  R('gen-fuel-fuel','Fuel (250 MW)','fuel-generator',3,[io('fuel',1)],[]),
+  R('gen-fuel-turbofuel','Turbofuel (250 MW)','fuel-generator',8,[io('turbofuel',1)],[]),
+  R('gen-fuel-liquidbiofuel','Liquid Biofuel (250 MW)','fuel-generator',3,[io('liquid-biofuel',1)],[]),
+  // Nuclear Power Plant (2500 MW): 0.2 Uranium Fuel Rod/min + 240 Water/min → duration=300
+  R('gen-nuclear-uranium','Uranium Fuel Rod (2500 MW)','nuclear-power-plant',300,[io('uranium-fuel-rod',1),io('water',1200)],[]),
+  R('gen-nuclear-plutonium','Plutonium Fuel Rod (2500 MW)','nuclear-power-plant',600,[io('plutonium-fuel-rod',1),io('water',2400)],[]),
+  // Geothermal (no fuel)
+  R('gen-geothermal','Geothermal (200 MW avg)','geothermal-generator',1,[],[]),
   // ── Particle Accelerator ──
   R('r-plutonium-pellet','Plutonium Pellet','particle-accelerator',60,
     [io('non-fissile-uranium',100),io('uranium-fuel-rod',0.1)],
@@ -555,6 +592,7 @@ const RECIPES = [
   R('alt-recycled-rubber','Recycled Rubber','refinery',12,[io('plastic',6),io('fuel',6)],[io('rubber',12)],true),
   // Cooling / Battery
   R('alt-heat-exchanger','Heat Exchanger','blender',6,[io('aluminum-casing',5),io('nitrogen-gas',6)],[io('cooling-system',1)],true),
+  R('alt-fine-black-powder','Fine Black Powder','assembler',8,[io('sulfur',1),io('compacted-coal',2)],[io('black-powder',6)],true),
 ];
 
 // ════════════════════════════════════════════════════════
@@ -684,18 +722,19 @@ function flattenChain(node, acc={mach:{},raw:{},power:0,byproducts:{}}){
 // ════════════════════════════════════════════════════════
 function calcBuilder(){
   const out={}, inp={};
-  let power=0;
+  let consumed=0, generated=0;
   for(const m of S.machines){
     const r=RMAP[m.recipeId]; const b=BMAP[m.buildingId];
     if(!r||!b) continue;
-    power+=m.count*b.power;
+    if(b.generates) generated+=m.count*b.generates;
+    else consumed+=m.count*(b.power||0);
     for(const o of r.outputs){ const rt=(o.amount*60)/r.duration*m.count; out[o.item]=(out[o.item]||0)+rt; }
     for(const i of r.inputs){  const rt=(i.amount*60)/r.duration*m.count; inp[i.item]=(inp[i.item]||0)+rt; }
   }
   const all=new Set([...Object.keys(out),...Object.keys(inp)]);
   const net={};
   for(const id of all) net[id]=(out[id]||0)-(inp[id]||0);
-  return {out,inp,net,power};
+  return {out,inp,net,consumed,generated};
 }
 
 // ════════════════════════════════════════════════════════
@@ -924,7 +963,7 @@ function renderResults(){
   } else {
     // Mode 2
     if(!S.machines.length){el.innerHTML='<div style="padding:16px;color:var(--muted);font-size:12px">Add machines to see results.</div>';return;}
-    const {out,inp,net,power}=calcBuilder();
+    const {out,inp,net,consumed,generated}=calcBuilder();
     let h='';
 
     // Net flows
@@ -961,8 +1000,16 @@ function renderResults(){
           <span class="rrow-val balanced">✓</span></div>`;
       }
     }
-    h+=`<div class="rsec-ttl">Power</div>
-      <div class="pow-box"><span class="pow-lbl">Total draw</span><span class="pow-val">${fmt(power)} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
+    const netPow=generated-consumed;
+    h+=`<div class="rsec-ttl">Power</div>`;
+    if(consumed)  h+=`<div class="pow-box"><span class="pow-lbl">Consumed</span><span class="pow-val deficit">${fmt(consumed)} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
+    if(generated) h+=`<div class="pow-box"><span class="pow-lbl">Generated</span><span class="pow-val surplus">${fmt(generated)} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
+    if(consumed&&generated){
+      const cls=netPow>=0?'surplus':'deficit';
+      const sign=netPow>=0?'+':'−';
+      h+=`<div class="pow-box"><span class="pow-lbl">Net</span><span class="pow-val ${cls}">${sign}${fmt(Math.abs(netPow))} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
+    }
+    if(!consumed&&!generated) h+=`<div class="pow-box"><span class="pow-lbl">Total draw</span><span class="pow-val">0 <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
     el.innerHTML=h;
   }
 }
