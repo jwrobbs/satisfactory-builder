@@ -200,10 +200,11 @@ body{
 }
 .factory-name-input:hover{border-bottom-color:var(--border)}
 .factory-name-input:focus{border-bottom-color:var(--accent)}
-.factory-rem{
+.factory-dup,.factory-rem{
   background:transparent;border:1px solid var(--border);border-radius:3px;
   color:var(--muted);padding:3px 8px;cursor:pointer;font-size:11px;transition:all .15s;
 }
+.factory-dup:hover{border-color:var(--accent);color:var(--accent)}
 .factory-rem:hover{border-color:var(--red);color:var(--red)}
 .add-factory-btn{
   background:transparent;border:2px dashed var(--accent);border-radius:6px;
@@ -953,6 +954,7 @@ function renderBuilder(el){
         <input class="factory-name-input" value="${esc(f.name)}"
                onchange="renameFactory(${f.id},this.value)"
                onblur="renameFactory(${f.id},this.value)">
+        <button class="factory-dup" onclick="duplicateFactory(${f.id})" title="Duplicate factory">⧉</button>
         ${canRemove?`<button class="factory-rem" onclick="removeFactory(${f.id})">✕</button>`:''}
       </div>
       <div class="mach-list">`;
@@ -1135,6 +1137,20 @@ function addFactory(){
   renderTree(); renderResults(); saveURL();
 }
 
+function duplicateFactory(fid){
+  const src=S.factories.find(f=>f.id===fid);
+  if(!src) return;
+  const fid2=S.nextFid++;
+  const copy={
+    id:fid2,
+    name:src.name+' (copy)',
+    machines:src.machines.map(m=>({id:S.nextMid++,buildingId:m.buildingId,recipeId:m.recipeId,count:m.count}))
+  };
+  const idx=S.factories.indexOf(src);
+  S.factories.splice(idx+1,0,copy);
+  renderTree(); renderResults(); saveURL();
+}
+
 function removeFactory(fid){
   if(S.factories.length<=1) return;
   S.factories=S.factories.filter(f=>f.id!==fid);
@@ -1222,16 +1238,15 @@ function loadURL(){
         const mStr=part.slice(tilde+1);
         const machines=mStr?mStr.split(';').filter(Boolean).map(seg=>{
           const[b,r,c]=seg.split('|');
-          return{id:++S.nextMid,buildingId:b||'',recipeId:r||'',count:parseInt(c)||0};
+          return{id:S.nextMid++,buildingId:b||'',recipeId:r||'',count:parseInt(c)||0};
         }):[];
-        return{id:++S.nextFid,name,machines};
+        return{id:S.nextFid++,name,machines};
       });
     } else if(mParam){
-      S.factories=[{id:1,name:'Factory 1',machines:mParam.split(',').map(part=>{
+      S.factories=[{id:S.nextFid++,name:'Factory 1',machines:mParam.split(',').map(part=>{
         const[b,r,c]=part.split('|');
-        return{id:++S.nextMid,buildingId:b||'',recipeId:r||'',count:parseInt(c)||0};
+        return{id:S.nextMid++,buildingId:b||'',recipeId:r||'',count:parseInt(c)||0};
       })}];
-      S.nextFid=2;
     }
   }
   // Sync mode buttons
