@@ -187,6 +187,42 @@ body{
   transition:all .15s;text-align:center;width:100%;
 }
 .add-row:hover{border-color:var(--accent);color:var(--accent)}
+/* Multi-factory */
+.factory-block{
+  border:1px solid var(--border);border-left:3px solid var(--accent);
+  border-radius:6px;padding:12px;margin-bottom:12px;background:var(--surf2);
+}
+.factory-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.factory-name-input{
+  flex:1;background:transparent;border:none;border-bottom:1px solid transparent;
+  color:var(--accent);font-size:13px;font-weight:700;padding:2px 4px;outline:none;
+  transition:border-color .15s;
+}
+.factory-name-input:hover{border-bottom-color:var(--border)}
+.factory-name-input:focus{border-bottom-color:var(--accent)}
+.factory-rem{
+  background:transparent;border:1px solid var(--border);border-radius:3px;
+  color:var(--muted);padding:3px 8px;cursor:pointer;font-size:11px;transition:all .15s;
+}
+.factory-rem:hover{border-color:var(--red);color:var(--red)}
+.add-factory-btn{
+  background:transparent;border:2px dashed var(--accent);border-radius:6px;
+  color:var(--accent);padding:10px;cursor:pointer;font-size:13px;font-weight:600;
+  transition:all .15s;text-align:center;width:100%;opacity:.7;
+}
+.add-factory-btn:hover{opacity:1;background:color-mix(in srgb,var(--accent) 8%,transparent)}
+/* Factory section headers in results */
+.factory-rsec{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--accent);margin:16px 0 6px;padding:5px 8px;
+  background:color-mix(in srgb,var(--accent) 10%,transparent);
+  border-radius:4px;border-left:3px solid var(--accent);
+}
+.factory-rsec:first-child{margin-top:0}
+.factory-rsec.aggregate{
+  color:var(--text);background:var(--surf2);border-color:var(--border);
+  margin-top:20px;border-top:1px solid var(--border);padding-top:8px;
+}
 /* ── Results ── */
 #res{
   grid-area:res;background:var(--surf);
@@ -638,8 +674,9 @@ const S={
   targetRate:60,
   overrides:{},   // itemId -> recipeId
   chain:null,
-  machines:[],    // [{id,buildingId,recipeId,count}]
+  factories:[{id:1,name:'Factory 1',machines:[]}],  // [{id,name,machines:[{id,buildingId,recipeId,count}]}]
   nextMid:1,
+  nextFid:2,
   filter:'',
   browserItem:null,
 };
@@ -720,10 +757,10 @@ function flattenChain(node, acc={mach:{},raw:{},power:0,byproducts:{}}){
 // ════════════════════════════════════════════════════════
 //  CALCULATION — MODE 2 (machine builder)
 // ════════════════════════════════════════════════════════
-function calcBuilder(){
+function calcBuilder(machines){
   const out={}, inp={};
   let consumed=0, generated=0;
-  for(const m of S.machines){
+  for(const m of machines){
     const r=RMAP[m.recipeId]; const b=BMAP[m.buildingId];
     if(!r||!b) continue;
     if(b.generates) generated+=m.count*b.generates;
@@ -736,6 +773,7 @@ function calcBuilder(){
   for(const id of all) net[id]=(out[id]||0)-(inp[id]||0);
   return {out,inp,net,consumed,generated};
 }
+function allMachines(){ return S.factories.flatMap(f=>f.machines); }
 
 // ════════════════════════════════════════════════════════
 //  RENDER — BROWSER
@@ -884,31 +922,46 @@ function nodeHTML(node){
 // ════════════════════════════════════════════════════════
 //  RENDER — MACHINE BUILDER (Mode 2)
 // ════════════════════════════════════════════════════════
+function machineRowHTML(fid, m){
+  const bldgOpts=BUILDINGS.map(b=>
+    `<option value="${b.id}"${b.id===m.buildingId?' selected':''}>${esc(b.name)}</option>`
+  ).join('');
+  const recs=BY_BLDG[m.buildingId]||[];
+  const recOpts=recs.map(r=>
+    `<option value="${r.id}"${r.id===m.recipeId?' selected':''}>${r.isAlternate?'★ ':''}${esc(r.name)}</option>`
+  ).join('');
+  return `<div class="mrow">
+    <select class="msel" onchange="setBuildingId(${fid},${m.id},this.value)">
+      <option value="">— Building —</option>${bldgOpts}
+    </select>
+    <select class="msel" onchange="setMRecipe(${fid},${m.id},this.value)" style="flex:1;min-width:0">
+      <option value="">— Recipe —</option>${recOpts}
+    </select>
+    <span class="mlbl">×</span>
+    <input class="mcount" type="number" min="0" step="1" value="${m.count}"
+           onchange="setMCount(${fid},${m.id},+this.value)">
+    <button class="mrem" onclick="removeMachine(${fid},${m.id})">✕</button>
+  </div>`;
+}
+
 function renderBuilder(el){
-  let html=`<div style="padding:14px"><div class="mach-list">`;
-  for(const m of S.machines){
-    const bldgOpts=BUILDINGS.map(b=>
-      `<option value="${b.id}"${b.id===m.buildingId?' selected':''}>${esc(b.name)}</option>`
-    ).join('');
-    const recs=BY_BLDG[m.buildingId]||[];
-    const recOpts=recs.map(r=>
-      `<option value="${r.id}"${r.id===m.recipeId?' selected':''}>${r.isAlternate?'★ ':''}${esc(r.name)}</option>`
-    ).join('');
-    html+=`<div class="mrow">
-      <select class="msel" onchange="setBuildingId(${m.id},this.value)">
-        <option value="">— Building —</option>${bldgOpts}
-      </select>
-      <select class="msel" onchange="setMRecipe(${m.id},this.value)" style="flex:1;min-width:0">
-        <option value="">— Recipe —</option>${recOpts}
-      </select>
-      <span class="mlbl">×</span>
-      <input class="mcount" type="number" min="0" step="1" value="${m.count}"
-             onchange="setMCount(${m.id},+this.value)">
-      <button class="mrem" onclick="removeMachine(${m.id})">✕</button>
+  const canRemove=S.factories.length>1;
+  let html=`<div style="padding:14px">`;
+  for(const f of S.factories){
+    html+=`<div class="factory-block">
+      <div class="factory-hdr">
+        <input class="factory-name-input" value="${esc(f.name)}"
+               onchange="renameFactory(${f.id},this.value)"
+               onblur="renameFactory(${f.id},this.value)">
+        ${canRemove?`<button class="factory-rem" onclick="removeFactory(${f.id})">✕</button>`:''}
+      </div>
+      <div class="mach-list">`;
+    for(const m of f.machines) html+=machineRowHTML(f.id,m);
+    html+=`</div>
+      <button class="add-row" style="margin-top:8px" onclick="addMachine(${f.id})">+ Add Machine</button>
     </div>`;
   }
-  html+=`</div>
-    <button class="add-row" style="margin-top:8px" onclick="addMachine()">+ Add Machine</button>
+  html+=`<button class="add-factory-btn" onclick="addFactory()">+ Add Factory</button>
   </div>`;
   el.innerHTML=html;
 }
@@ -962,56 +1015,69 @@ function renderResults(){
 
   } else {
     // Mode 2
-    if(!S.machines.length){el.innerHTML='<div style="padding:16px;color:var(--muted);font-size:12px">Add machines to see results.</div>';return;}
-    const {out,inp,net,consumed,generated}=calcBuilder();
+    const total=allMachines();
+    if(!total.length){el.innerHTML='<div style="padding:16px;color:var(--muted);font-size:12px">Add machines to see results.</div>';return;}
+    const multi=S.factories.length>1;
     let h='';
-
-    // Net flows
-    const surplus=[],deficit=[],balanced=[];
-    for(const [id,n] of Object.entries(net)){
-      if(n>0.001) surplus.push([id,n]);
-      else if(n<-0.001) deficit.push([id,-n]);
-      else balanced.push(id);
+    for(const f of S.factories){
+      if(!f.machines.length) continue;
+      if(multi) h+=`<div class="factory-rsec">${esc(f.name)}</div>`;
+      h+=builderResultsHTML(f.machines);
     }
-    surplus.sort((a,b)=>b[1]-a[1]);
-    deficit.sort((a,b)=>b[1]-a[1]);
-
-    if(surplus.length){
-      h+=`<div class="rsec-ttl">Outputs (surplus)</div>`;
-      for(const [id,rate] of surplus){
-        const item=IMAP[id];
-        h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
-          <span class="rrow-val surplus">+${fmt(rate)}<span class="col-d">/min</span></span></div>`;
-      }
+    if(multi){
+      h+=`<div class="factory-rsec aggregate">All Factories</div>`;
+      h+=builderResultsHTML(total);
     }
-    if(deficit.length){
-      h+=`<div class="rsec-ttl">Inputs needed</div>`;
-      for(const [id,rate] of deficit){
-        const item=IMAP[id];
-        h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
-          <span class="rrow-val deficit">−${fmt(rate)}<span class="col-d">/min</span></span></div>`;
-      }
-    }
-    if(balanced.length){
-      h+=`<div class="rsec-ttl">Balanced internally</div>`;
-      for(const id of balanced){
-        const item=IMAP[id];
-        h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
-          <span class="rrow-val balanced">✓</span></div>`;
-      }
-    }
-    const netPow=generated-consumed;
-    h+=`<div class="rsec-ttl">Power</div>`;
-    if(consumed)  h+=`<div class="pow-box"><span class="pow-lbl">Consumed</span><span class="pow-val deficit">${fmt(consumed)} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
-    if(generated) h+=`<div class="pow-box"><span class="pow-lbl">Generated</span><span class="pow-val surplus">${fmt(generated)} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
-    if(consumed&&generated){
-      const cls=netPow>=0?'surplus':'deficit';
-      const sign=netPow>=0?'+':'−';
-      h+=`<div class="pow-box"><span class="pow-lbl">Net</span><span class="pow-val ${cls}">${sign}${fmt(Math.abs(netPow))} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
-    }
-    if(!consumed&&!generated) h+=`<div class="pow-box"><span class="pow-lbl">Total draw</span><span class="pow-val">0 <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
     el.innerHTML=h;
   }
+}
+
+function builderResultsHTML(machines){
+  const {out,inp,net,consumed,generated}=calcBuilder(machines);
+  let h='';
+  const surplus=[],deficit=[],balanced=[];
+  for(const [id,n] of Object.entries(net)){
+    if(n>0.001) surplus.push([id,n]);
+    else if(n<-0.001) deficit.push([id,-n]);
+    else balanced.push(id);
+  }
+  surplus.sort((a,b)=>b[1]-a[1]);
+  deficit.sort((a,b)=>b[1]-a[1]);
+  if(surplus.length){
+    h+=`<div class="rsec-ttl">Outputs (surplus)</div>`;
+    for(const [id,rate] of surplus){
+      const item=IMAP[id];
+      h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
+        <span class="rrow-val surplus">+${fmt(rate)}<span class="col-d">/min</span></span></div>`;
+    }
+  }
+  if(deficit.length){
+    h+=`<div class="rsec-ttl">Inputs needed</div>`;
+    for(const [id,rate] of deficit){
+      const item=IMAP[id];
+      h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
+        <span class="rrow-val deficit">−${fmt(rate)}<span class="col-d">/min</span></span></div>`;
+    }
+  }
+  if(balanced.length){
+    h+=`<div class="rsec-ttl">Balanced internally</div>`;
+    for(const id of balanced){
+      const item=IMAP[id];
+      h+=`<div class="rrow"><span class="rrow-name"><span class="dot c-${item?.cat||'raw'}"></span>${esc(item?.name||id)}</span>
+        <span class="rrow-val balanced">✓</span></div>`;
+    }
+  }
+  const netPow=generated-consumed;
+  h+=`<div class="rsec-ttl">Power</div>`;
+  if(consumed)  h+=`<div class="pow-box"><span class="pow-lbl">Consumed</span><span class="pow-val deficit">${fmt(consumed)} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
+  if(generated) h+=`<div class="pow-box"><span class="pow-lbl">Generated</span><span class="pow-val surplus">${fmt(generated)} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
+  if(consumed&&generated){
+    const cls=netPow>=0?'surplus':'deficit';
+    const sign=netPow>=0?'+':'−';
+    h+=`<div class="pow-box"><span class="pow-lbl">Net</span><span class="pow-val ${cls}">${sign}${fmt(Math.abs(netPow))} <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
+  }
+  if(!consumed&&!generated) h+=`<div class="pow-box"><span class="pow-lbl">Total draw</span><span class="pow-val">0 <span style="font-size:14px;font-weight:400;color:var(--dim)">MW</span></span></div>`;
+  return h;
 }
 
 // ════════════════════════════════════════════════════════
@@ -1062,35 +1128,56 @@ function setOverride(itemId,recipeId){
   }
 }
 
-// Mode 2
-function addMachine(){
-  S.machines.push({id:S.nextMid++,buildingId:'manufacturer',recipeId:'',count:1});
-  renderTree();
-  renderResults();
+// Mode 2 — factory management
+function addFactory(){
+  const fid=S.nextFid++;
+  S.factories.push({id:fid,name:'Factory '+fid,machines:[]});
+  renderTree(); renderResults(); saveURL();
 }
 
-function removeMachine(id){
-  S.machines=S.machines.filter(m=>m.id!==id);
-  renderTree();
-  renderResults();
+function removeFactory(fid){
+  if(S.factories.length<=1) return;
+  S.factories=S.factories.filter(f=>f.id!==fid);
+  renderTree(); renderResults(); saveURL();
 }
 
-function setBuildingId(id,bid){
-  const m=S.machines.find(m=>m.id===id);
+function renameFactory(fid,name){
+  const f=S.factories.find(f=>f.id===fid);
+  if(f){ f.name=name; saveURL(); }
+}
+
+// Mode 2 — machine management (all scoped to factory)
+function addMachine(fid){
+  const f=S.factories.find(f=>f.id===fid);
+  if(f){ f.machines.push({id:S.nextMid++,buildingId:'manufacturer',recipeId:'',count:1}); renderTree(); renderResults(); saveURL(); }
+}
+
+function removeMachine(fid,mid){
+  const f=S.factories.find(f=>f.id===fid);
+  if(f){ f.machines=f.machines.filter(m=>m.id!==mid); renderTree(); renderResults(); saveURL(); }
+}
+
+function setBuildingId(fid,mid,bid){
+  const f=S.factories.find(f=>f.id===fid);
+  if(!f) return;
+  const m=f.machines.find(m=>m.id===mid);
   if(!m) return;
   m.buildingId=bid;
   m.recipeId=''; // reset recipe when building changes
-  renderTree();
-  renderResults();
+  renderTree(); renderResults(); saveURL();
 }
 
-function setMRecipe(id,rid){
-  const m=S.machines.find(m=>m.id===id);
+function setMRecipe(fid,mid,rid){
+  const f=S.factories.find(f=>f.id===fid);
+  if(!f) return;
+  const m=f.machines.find(m=>m.id===mid);
   if(m){ m.recipeId=rid; renderResults(); saveURL(); }
 }
 
-function setMCount(id,n){
-  const m=S.machines.find(m=>m.id===id);
+function setMCount(fid,mid,n){
+  const f=S.factories.find(f=>f.id===fid);
+  if(!f) return;
+  const m=f.machines.find(m=>m.id===mid);
   if(m){ m.count=Math.max(0,n)||0; renderResults(); saveURL(); }
 }
 
@@ -1106,8 +1193,10 @@ function saveURL(){
     const ov=Object.entries(S.overrides);
     if(ov.length) p.set('ov',ov.map(([k,v])=>k+'~'+v).join(','));
   } else {
-    if(S.machines.length)
-      p.set('m',S.machines.map(m=>[m.buildingId,m.recipeId,m.count].join('|')).join(','));
+    if(S.factories.some(f=>f.machines.length))
+      p.set('f',S.factories.map(f=>
+        encodeURIComponent(f.name)+'~'+f.machines.map(m=>[m.buildingId,m.recipeId,m.count].join('|')).join(';')
+      ).join(','));
   }
   history.replaceState(null,'','#'+p.toString());
 }
@@ -1124,11 +1213,26 @@ function loadURL(){
     if(ov) ov.split(',').forEach(pair=>{const[k,v]=pair.split('~');if(k&&v)S.overrides[k]=v;});
     if(S.targetItem) S.chain=resolveChain(S.targetItem,S.targetRate,S.overrides);
   } else {
-    const m=p.get('m');
-    if(m) S.machines=m.split(',').map(part=>{
-      const[b,r,c]=part.split('|');
-      return{id:++S.nextMid,buildingId:b||'',recipeId:r||'',count:parseInt(c)||0};
-    });
+    const fParam=p.get('f');
+    const mParam=p.get('m'); // backward compat with old single-factory URLs
+    if(fParam){
+      S.factories=fParam.split(',').map(part=>{
+        const tilde=part.indexOf('~');
+        const name=decodeURIComponent(part.slice(0,tilde));
+        const mStr=part.slice(tilde+1);
+        const machines=mStr?mStr.split(';').filter(Boolean).map(seg=>{
+          const[b,r,c]=seg.split('|');
+          return{id:++S.nextMid,buildingId:b||'',recipeId:r||'',count:parseInt(c)||0};
+        }):[];
+        return{id:++S.nextFid,name,machines};
+      });
+    } else if(mParam){
+      S.factories=[{id:1,name:'Factory 1',machines:mParam.split(',').map(part=>{
+        const[b,r,c]=part.split('|');
+        return{id:++S.nextMid,buildingId:b||'',recipeId:r||'',count:parseInt(c)||0};
+      })}];
+      S.nextFid=2;
+    }
   }
   // Sync mode buttons
   document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.mode));
