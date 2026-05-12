@@ -200,6 +200,18 @@ body{
 }
 .factory-name-input:hover{border-bottom-color:var(--border)}
 .factory-name-input:focus{border-bottom-color:var(--accent)}
+.factory-toggle{
+  background:transparent;border:none;color:var(--dim);cursor:pointer;
+  font-size:11px;padding:2px 4px;transition:color .15s;flex-shrink:0;
+}
+.factory-toggle:hover{color:var(--text)}
+.factory-light{
+  width:9px;height:9px;border-radius:50%;flex-shrink:0;
+  box-shadow:0 0 5px currentColor;transition:background .2s,color .2s;
+}
+.factory-light.green{background:var(--green);color:var(--green)}
+.factory-light.red{background:var(--red);color:var(--red)}
+.factory-light.dim{background:var(--muted);color:var(--muted);box-shadow:none}
 .factory-dup,.factory-rem{
   background:transparent;border:1px solid var(--border);border-radius:3px;
   color:var(--muted);padding:3px 8px;cursor:pointer;font-size:11px;transition:all .15s;
@@ -678,6 +690,7 @@ const S={
   factories:[{id:1,name:'Factory 1',machines:[]}],  // [{id,name,machines:[{id,buildingId,recipeId,count}]}]
   nextMid:1,
   nextFid:2,
+  collapsed:new Set(),  // factory IDs that are collapsed (UI only, not persisted)
   filter:'',
   browserItem:null,
 };
@@ -949,19 +962,31 @@ function renderBuilder(el){
   const canRemove=S.factories.length>1;
   let html=`<div style="padding:14px">`;
   for(const f of S.factories){
+    const collapsed=S.collapsed.has(f.id);
+    // Status light: dim if no machines, red if any deficit, green otherwise
+    let lightCls='dim';
+    if(f.machines.length){
+      const {net}=calcBuilder(f.machines);
+      const hasDeficit=Object.values(net).some(n=>n<-0.001);
+      lightCls=hasDeficit?'red':'green';
+    }
     html+=`<div class="factory-block">
       <div class="factory-hdr">
+        <button class="factory-toggle" onclick="toggleFactory(${f.id})">${collapsed?'▶':'▼'}</button>
+        <span class="factory-light ${lightCls}" data-fid="${f.id}"></span>
         <input class="factory-name-input" value="${esc(f.name)}"
                onchange="renameFactory(${f.id},this.value)"
                onblur="renameFactory(${f.id},this.value)">
         <button class="factory-dup" onclick="duplicateFactory(${f.id})" title="Duplicate factory">⧉</button>
         ${canRemove?`<button class="factory-rem" onclick="removeFactory(${f.id})">✕</button>`:''}
-      </div>
-      <div class="mach-list">`;
-    for(const m of f.machines) html+=machineRowHTML(f.id,m);
-    html+=`</div>
-      <button class="add-row" style="margin-top:8px" onclick="addMachine(${f.id})">+ Add Machine</button>
-    </div>`;
+      </div>`;
+    if(!collapsed){
+      html+=`<div class="mach-list">`;
+      for(const m of f.machines) html+=machineRowHTML(f.id,m);
+      html+=`</div>
+      <button class="add-row" style="margin-top:8px" onclick="addMachine(${f.id})">+ Add Machine</button>`;
+    }
+    html+=`</div>`;
   }
   html+=`<button class="add-factory-btn" onclick="addFactory()">+ Add Factory</button>
   </div>`;
@@ -1131,6 +1156,24 @@ function setOverride(itemId,recipeId){
 }
 
 // Mode 2 — factory management
+function refreshFactoryLight(fid){
+  const f=S.factories.find(f=>f.id===fid);
+  const el=document.querySelector(`.factory-light[data-fid="${fid}"]`);
+  if(!f||!el) return;
+  let cls='dim';
+  if(f.machines.length){
+    const {net}=calcBuilder(f.machines);
+    cls=Object.values(net).some(n=>n<-0.001)?'red':'green';
+  }
+  el.className=`factory-light ${cls}`;
+}
+
+function toggleFactory(fid){
+  if(S.collapsed.has(fid)) S.collapsed.delete(fid);
+  else S.collapsed.add(fid);
+  renderTree();
+}
+
 function addFactory(){
   const fid=S.nextFid++;
   S.factories.push({id:fid,name:'Factory '+fid,machines:[]});
@@ -1154,6 +1197,7 @@ function duplicateFactory(fid){
 function removeFactory(fid){
   if(S.factories.length<=1) return;
   S.factories=S.factories.filter(f=>f.id!==fid);
+  S.collapsed.delete(fid);
   renderTree(); renderResults(); saveURL();
 }
 
@@ -1187,14 +1231,14 @@ function setMRecipe(fid,mid,rid){
   const f=S.factories.find(f=>f.id===fid);
   if(!f) return;
   const m=f.machines.find(m=>m.id===mid);
-  if(m){ m.recipeId=rid; renderResults(); saveURL(); }
+  if(m){ m.recipeId=rid; renderTree(); renderResults(); saveURL(); }
 }
 
 function setMCount(fid,mid,n){
   const f=S.factories.find(f=>f.id===fid);
   if(!f) return;
   const m=f.machines.find(m=>m.id===mid);
-  if(m){ m.count=Math.max(0,n)||0; renderResults(); saveURL(); }
+  if(m){ m.count=Math.max(0,n)||0; refreshFactoryLight(fid); renderResults(); saveURL(); }
 }
 
 // ════════════════════════════════════════════════════════
