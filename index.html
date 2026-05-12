@@ -227,15 +227,21 @@ body{
 /* Factory section headers in results */
 .factory-rsec{
   font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
-  color:var(--accent);margin:16px 0 6px;padding:5px 8px;
+  color:var(--accent);margin:16px 0 0;padding:5px 8px;
   background:color-mix(in srgb,var(--accent) 10%,transparent);
   border-radius:4px;border-left:3px solid var(--accent);
+  display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;
+  transition:background .15s;
 }
 .factory-rsec:first-child{margin-top:0}
+.factory-rsec:hover{background:color-mix(in srgb,var(--accent) 18%,transparent)}
 .factory-rsec.aggregate{
   color:var(--text);background:var(--surf2);border-color:var(--border);
-  margin-top:20px;border-top:1px solid var(--border);padding-top:8px;
+  margin-top:20px;
 }
+.factory-rsec.aggregate:hover{background:var(--surf3)}
+.factory-rsec-arrow{font-size:9px;flex-shrink:0}
+.factory-rsec-body{margin-bottom:8px}
 /* ── Results ── */
 #res{
   grid-area:res;background:var(--surf);
@@ -690,7 +696,8 @@ const S={
   factories:[{id:1,name:'Factory 1',machines:[]}],  // [{id,name,machines:[{id,buildingId,recipeId,count}]}]
   nextMid:1,
   nextFid:2,
-  collapsed:new Set(),  // factory IDs that are collapsed (UI only, not persisted)
+  collapsed:new Set(),    // factory IDs collapsed in planner (UI only)
+  resCollapsed:new Set(), // factory IDs collapsed in results panel (UI only)
   filter:'',
   browserItem:null,
 };
@@ -1048,12 +1055,26 @@ function renderResults(){
     let h='';
     for(const f of S.factories){
       if(!f.machines.length) continue;
-      if(multi) h+=`<div class="factory-rsec">${esc(f.name)}</div>`;
-      h+=builderResultsHTML(f.machines);
+      const {net}=calcBuilder(f.machines);
+      const hasDeficit=Object.values(net).some(n=>n<-0.001);
+      const lightCls=hasDeficit?'red':'green';
+      const collapsed=S.resCollapsed.has(f.id);
+      if(multi){
+        h+=`<div class="factory-rsec" onclick="toggleResFactory(${f.id})">
+          <span class="factory-rsec-arrow">${collapsed?'▶':'▼'}</span>
+          <span class="factory-light ${lightCls}" style="margin:0"></span>
+          <span>${esc(f.name)}</span>
+        </div>`;
+      }
+      if(!collapsed) h+=`<div class="factory-rsec-body">${builderResultsHTML(f.machines)}</div>`;
     }
     if(multi){
-      h+=`<div class="factory-rsec aggregate">All Factories</div>`;
-      h+=builderResultsHTML(total);
+      const allCollapsed=S.resCollapsed.has('all');
+      h+=`<div class="factory-rsec aggregate" onclick="toggleResFactory('all')">
+        <span class="factory-rsec-arrow">${allCollapsed?'▶':'▼'}</span>
+        <span>All Factories</span>
+      </div>`;
+      if(!allCollapsed) h+=`<div class="factory-rsec-body">${builderResultsHTML(total)}</div>`;
     }
     el.innerHTML=h;
   }
@@ -1168,6 +1189,12 @@ function refreshFactoryLight(fid){
   el.className=`factory-light ${cls}`;
 }
 
+function toggleResFactory(key){
+  if(S.resCollapsed.has(key)) S.resCollapsed.delete(key);
+  else S.resCollapsed.add(key);
+  renderResults();
+}
+
 function toggleFactory(fid){
   if(S.collapsed.has(fid)) S.collapsed.delete(fid);
   else S.collapsed.add(fid);
@@ -1198,6 +1225,7 @@ function removeFactory(fid){
   if(S.factories.length<=1) return;
   S.factories=S.factories.filter(f=>f.id!==fid);
   S.collapsed.delete(fid);
+  S.resCollapsed.delete(fid);
   renderTree(); renderResults(); saveURL();
 }
 
