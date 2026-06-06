@@ -976,9 +976,16 @@ function nodeHTML(node){
 // ════════════════════════════════════════════════════════
 //  RENDER — MACHINE BUILDER (Mode 2)
 // ════════════════════════════════════════════════════════
+const BLDG_GROUPS=[
+  {label:'Extraction', ids:['miner-mk1','miner-mk2','miner-mk3','oil-extractor','water-extractor','resource-well-pressurizer']},
+  {label:'Basic',      ids:['smelter','constructor','assembler','foundry']},
+  {label:'Advanced',   ids:['manufacturer','refinery','packager','blender','particle-accelerator','converter','quantum-encoder']},
+  {label:'Power',      ids:['biomass-burner','coal-generator','fuel-generator','nuclear-power-plant','geothermal-generator']},
+];
 function machineRowHTML(fid, m){
-  const bldgOpts=BUILDINGS.map(b=>
-    `<option value="${b.id}"${b.id===m.buildingId?' selected':''}>${esc(b.name)}</option>`
+  const bldgOpts=BLDG_GROUPS.map(g=>
+    `<optgroup label="${g.label}">`+g.ids.map(id=>{const b=BMAP[id];
+      return b?`<option value="${id}"${id===m.buildingId?' selected':''}>${esc(b.name)}</option>`:'';}).join('')+`</optgroup>`
   ).join('');
   const recs=BY_BLDG[m.buildingId]||[];
   const recOpts=recs.map(r=>
