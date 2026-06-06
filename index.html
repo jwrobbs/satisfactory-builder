@@ -1380,6 +1380,7 @@ function loadURL(){
 // ════════════════════════════════════════════════════════
 initData();
 loadURL();
+CAT_ORDER.forEach(c=>S.browserCollapsed.add(c)); // recipe browser starts collapsed
 renderBrowser();
 renderPlannerBar();
 renderTree();
