@@ -1284,7 +1284,7 @@ function renameFactory(fid,name){
 // Mode 2 — machine management (all scoped to factory)
 function addMachine(fid){
   const f=S.factories.find(f=>f.id===fid);
-  if(f){ f.machines.push({id:S.nextMid++,buildingId:'manufacturer',recipeId:'',count:1}); renderTree(); renderResults(); saveURL(); }
+  if(f){ f.machines.push({id:S.nextMid++,buildingId:'miner-mk1',recipeId:'',count:1}); renderTree(); renderResults(); saveURL(); }
 }
 
 function removeMachine(fid,mid){
