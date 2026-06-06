@@ -457,9 +457,9 @@ const BUILDINGS = [
   {id:'nuclear-power-plant',name:'Nuclear Power Plant',power:0,generates:2500},
   {id:'geothermal-generator',name:'Geothermal Generator',power:0,generates:200}, // variable; 200 avg normal node
   // Extractors
-  {id:'miner-mk1',name:'Miner Mk.1',power:5},
-  {id:'miner-mk2',name:'Miner Mk.2',power:12},
-  {id:'miner-mk3',name:'Miner Mk.3',power:22.5},
+  {id:'miner-mk1',name:'Miner Mk.1',power:5,mineMult:1},
+  {id:'miner-mk2',name:'Miner Mk.2',power:12,mineMult:2},
+  {id:'miner-mk3',name:'Miner Mk.3',power:22.5,mineMult:4},
   {id:'oil-extractor',name:'Oil Extractor',power:40},
   {id:'water-extractor',name:'Water Extractor',power:20},
   {id:'resource-well-pressurizer',name:'Resource Well Pressurizer',power:150},
@@ -573,13 +573,13 @@ const RECIPES = [
   R('r-non-fissile-uranium','Non-fissile Uranium','blender',24,
     [io('uranium-waste',15),io('silica',10),io('nitric-acid',6),io('sulfuric-acid',6),io('water',6)],
     [io('non-fissile-uranium',20)]),
-  // ── Miners (normal node: Mk1=60, Mk2=120, Mk3=240 /min) ──
+  // ── Miners: purity recipes at Mk.1 base /min; building tier multiplies (Mk1×1, Mk2×2, Mk3×4) ──
   ...['iron-ore','copper-ore','limestone','coal','caterium-ore','raw-quartz','sulfur','bauxite','uranium','sam'].flatMap(ore=>{
     const n = ITEMS.find(x=>x.id===ore)?.name || ore;
     return [
-      R(`mine-${ore}-mk1`, `Mine ${n} (Mk.1)`, 'miner-mk1', 1, [], [io(ore,1)]),
-      R(`mine-${ore}-mk2`, `Mine ${n} (Mk.2)`, 'miner-mk2', 1, [], [io(ore,2)]),
-      R(`mine-${ore}-mk3`, `Mine ${n} (Mk.3)`, 'miner-mk3', 1, [], [io(ore,4)]),
+      R(`mine-${ore}-impure`, `${n} (Impure)`, 'miner', 2, [], [io(ore,1)]),
+      R(`mine-${ore}-normal`, `${n} (Normal)`, 'miner', 1, [], [io(ore,1)]),
+      R(`mine-${ore}-pure`,   `${n} (Pure)`,   'miner', 1, [], [io(ore,2)]),
     ];
   }),
   // ── Fluid / Gas Extractors ──
@@ -694,8 +694,8 @@ function initData(){
       if(!BY_IN[inp.item]) BY_IN[inp.item]=[];
       BY_IN[inp.item].push(r);
     }
-    if(!BY_BLDG[r.machine]) BY_BLDG[r.machine]=[];
-    BY_BLDG[r.machine].push(r);
+    const machs = r.machine==='miner' ? ['miner-mk1','miner-mk2','miner-mk3'] : [r.machine];
+    for(const mid of machs){ if(!BY_BLDG[mid]) BY_BLDG[mid]=[]; BY_BLDG[mid].push(r); }
   }
   // Default recipe: first non-alternate per output item
   for(const itemId in BY_OUT){
@@ -816,7 +816,8 @@ function calcBuilder(machines){
     if(!r||!b) continue;
     if(b.generates) generated+=m.count*b.generates;
     else consumed+=m.count*(b.power||0);
-    for(const o of r.outputs){ const rt=(o.amount*60)/r.duration*m.count; out[o.item]=(out[o.item]||0)+rt; }
+    const mineMult=b.mineMult||1;
+    for(const o of r.outputs){ const rt=(o.amount*60)/r.duration*m.count*mineMult; out[o.item]=(out[o.item]||0)+rt; }
     for(const i of r.inputs){  const rt=(adjIn(i.amount)*60)/r.duration*m.count; inp[i.item]=(inp[i.item]||0)+rt; }
   }
   const all=new Set([...Object.keys(out),...Object.keys(inp)]);
@@ -894,7 +895,7 @@ function recipeCardHTML(r, highlightItem){
   const out=r.outputs.map((o,idx)=>`<span class="chip${idx>0?' chip-byp':''}"><span class="chip-n">${fmt((o.amount*60)/r.duration)}</span>/min ${esc(IMAP[o.item]?.name||o.item)}</span>`).join('<span style="color:var(--muted);margin:0 2px">+</span>');
   return `<div class="rcard${r.isAlternate?' alt':''}">
     <div class="rcard-name">${r.isAlternate?'<span class="alt-badge">ALT</span>':''}${esc(r.name)}</div>
-    <span class="rcard-machine">${bldg?bldg.name:r.machine}</span>
+    <span class="rcard-machine">${bldg?bldg.name:(r.machine==='miner'?'Miner':r.machine)}</span>
     <div class="rcard-row">${inp}<span class="rcard-arrow">→</span>${out}</div>
   </div>`;
 }
