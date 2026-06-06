@@ -73,7 +73,10 @@ body{
 .grp-lbl{
   padding:5px 10px 2px;font-size:10px;font-weight:700;
   text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
+  cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;
 }
+.grp-lbl:hover{color:var(--text)}
+.grp-arrow{font-size:8px;color:var(--dim)}
 .item-row{
   padding:4px 10px;font-size:12px;cursor:pointer;
   display:flex;align-items:center;gap:6px;transition:background .1s;
@@ -716,6 +719,7 @@ const S={
   nextFid:2,
   collapsed:new Set(),    // factory IDs collapsed in planner (UI only)
   resCollapsed:new Set(), // factory IDs collapsed in results panel (UI only)
+  browserCollapsed:new Set(), // recipe-browser categories collapsed (UI only)
   filter:'',
   browserItem:null,
 };
@@ -843,7 +847,10 @@ function renderBrowser(){
   for(const cat of CAT_ORDER){
     const grp=groups[cat];
     if(!grp||!grp.length) continue;
-    html+=`<div class="grp-lbl">${CAT_LABELS[cat]||cat}</div>`;
+    const collapsed=S.browserCollapsed.has(cat)&&!q;
+    html+=`<div class="grp-lbl" onclick="toggleBrowserCat('${cat}')">
+      <span class="grp-arrow">${collapsed?'▶':'▼'}</span>${CAT_LABELS[cat]||cat}</div>`;
+    if(collapsed) continue;
     grp.sort((a,b)=>a.name.localeCompare(b.name));
     for(const it of grp){
       const sel=S.browserItem===it.id?' sel':'';
@@ -1177,6 +1184,12 @@ function setCostMult(v){
 
 function filterBrowser(q){
   S.filter=q;
+  renderBrowser();
+}
+
+function toggleBrowserCat(cat){
+  if(S.browserCollapsed.has(cat)) S.browserCollapsed.delete(cat);
+  else S.browserCollapsed.add(cat);
   renderBrowser();
 }
 
