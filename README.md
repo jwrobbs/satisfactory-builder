@@ -6,13 +6,17 @@ power draw and byproducts — all in a single HTML file, no install required.
 
 **▶️ Live: [s-builder.joshuarobbs.com](https://s-builder.joshuarobbs.com/)**
 
+Built for **Satisfactory 1.2**.
+
 ## Features
 
 - **Target Output mode** — pick an item and a target rate (per minute); it works the
   whole production chain backwards: every intermediate recipe, machine counts, raw
   resource totals, power, and byproducts.
-- **Machine Builder mode** — build factories forward by adding machines and recipes, and
-  see net inputs/outputs across multiple factories.
+- **Machine Builder mode** — build factories forward by adding machines and recipes; see
+  per-machine and total inputs/outputs across multiple factories, with miner tier (Mk.1–3)
+  and node purity (impure/normal/pure) modeled.
+- **Recipe cost multiplier** — model Satisfactory 1.2's recipe parts cost setting (0.25×–2×).
 - **650+ recipes**, including alternate recipes (marked ★), 45+ buildings, and 100+ items.
 - **Power tracking** per machine and totaled across the chain.
 - **Shareable URLs** — your build is saved into the page URL, so you can bookmark it or
