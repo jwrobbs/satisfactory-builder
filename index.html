@@ -49,7 +49,10 @@ body{
 }
 .mode-btn.on{background:var(--accent);color:#0f1117;font-weight:700}
 .mode-btn:hover:not(.on){background:var(--surf2);color:var(--text)}
-.hdr-ver{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}
+.cost-mult{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);white-space:nowrap}
+.cost-mult select{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:12px;outline:none;cursor:pointer}
+.cost-mult select:focus{border-color:var(--accent)}
+.hdr-ver{font-size:11px;color:var(--muted);white-space:nowrap}
 /* ── Sidebar ── */
 #side{
   grid-area:side;background:var(--surf);
@@ -296,7 +299,19 @@ body{
     <button class="mode-btn on" data-mode="target" onclick="setMode('target')">⚙ Target Output</button>
     <button class="mode-btn" data-mode="builder" onclick="setMode('builder')">🏭 Machine Builder</button>
   </div>
-  <div class="hdr-ver">Calc version 1.0.1 for Satisfactory v1.1</div>
+  <label class="cost-mult">Recipe cost
+    <select id="cost-mult" onchange="setCostMult(this.value)">
+      <option value="0.25">0.25×</option>
+      <option value="0.5">0.5×</option>
+      <option value="0.75">0.75×</option>
+      <option value="1" selected>1× (default)</option>
+      <option value="1.25">1.25×</option>
+      <option value="1.5">1.5×</option>
+      <option value="1.75">1.75×</option>
+      <option value="2">2×</option>
+    </select>
+  </label>
+  <div class="hdr-ver">Calc version 1.1.0-alpha for Satisfactory v1.2</div>
 </div>
 
 <div id="side">
@@ -693,6 +708,7 @@ const S={
   mode:'target',
   targetItem:'',
   targetRate:60,
+  costMult:1,     // recipe parts cost multiplier (Satisfactory 1.2)
   overrides:{},   // itemId -> recipeId
   chain:null,
   factories:[{id:1,name:'Factory 1',machines:[]}],  // [{id,name,machines:[{id,buildingId,recipeId,count}]}]
@@ -727,6 +743,14 @@ function fmtM(n){
 // ════════════════════════════════════════════════════════
 //  CALCULATION — MODE 1 (chain resolver)
 // ════════════════════════════════════════════════════════
+// Recipe parts cost multiplier (Satisfactory 1.2): scales each ingredient's
+// per-craft amount, rounded to nearest whole number, floored at 1. Outputs are
+// left unchanged. At the default 1× the amount is returned untouched.
+function adjIn(amount){
+  if(S.costMult===1) return amount;
+  return Math.max(1, Math.round(amount*S.costMult));
+}
+
 function resolveChain(itemId, rate, overrides, depth=0){
   const item=IMAP[itemId];
   if(!item||depth>30) return {type:'raw',itemId,rate,item:item||{id:itemId,name:itemId}};
@@ -748,7 +772,7 @@ function resolveChain(itemId, rate, overrides, depth=0){
   };
 
   for(const inp of recipe.inputs){
-    const inpRate=(inp.amount*60)/recipe.duration*machCount;
+    const inpRate=(adjIn(inp.amount)*60)/recipe.duration*machCount;
     node.children.push(resolveChain(inp.item,inpRate,overrides,depth+1));
   }
   return node;
@@ -789,7 +813,7 @@ function calcBuilder(machines){
     if(b.generates) generated+=m.count*b.generates;
     else consumed+=m.count*(b.power||0);
     for(const o of r.outputs){ const rt=(o.amount*60)/r.duration*m.count; out[o.item]=(out[o.item]||0)+rt; }
-    for(const i of r.inputs){  const rt=(i.amount*60)/r.duration*m.count; inp[i.item]=(inp[i.item]||0)+rt; }
+    for(const i of r.inputs){  const rt=(adjIn(i.amount)*60)/r.duration*m.count; inp[i.item]=(inp[i.item]||0)+rt; }
   }
   const all=new Set([...Object.keys(out),...Object.keys(inp)]);
   const net={};
@@ -1143,6 +1167,14 @@ function setMode(mode){
   renderResults();
 }
 
+function setCostMult(v){
+  S.costMult=parseFloat(v)||1;
+  if(S.mode==='target'&&S.targetItem) S.chain=resolveChain(S.targetItem,S.targetRate,S.overrides);
+  renderTree();
+  renderResults();
+  saveURL();
+}
+
 function filterBrowser(q){
   S.filter=q;
   renderBrowser();
@@ -1277,6 +1309,7 @@ function setMCount(fid,mid,n){
 function saveURL(){
   const p=new URLSearchParams();
   p.set('mode',S.mode);
+  if(S.costMult!==1) p.set('cost',S.costMult);
   if(S.mode==='target'){
     if(S.targetItem) p.set('item',S.targetItem);
     p.set('rate',S.targetRate);
@@ -1296,6 +1329,7 @@ function loadURL(){
   if(!hash) return;
   const p=new URLSearchParams(hash);
   S.mode=p.get('mode')||'target';
+  S.costMult=parseFloat(p.get('cost'))||1;
   if(S.mode==='target'){
     S.targetItem=p.get('item')||'';
     S.targetRate=parseFloat(p.get('rate'))||60;
@@ -1325,6 +1359,7 @@ function loadURL(){
   }
   // Sync mode buttons
   document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.mode));
+  const cm=document.getElementById('cost-mult'); if(cm) cm.value=S.costMult;
 }
 
 // ════════════════════════════════════════════════════════
