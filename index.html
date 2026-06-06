@@ -243,6 +243,12 @@ body{
 .factory-active.on{color:var(--green);border-color:var(--green)}
 .factory-block.off{border-left-color:var(--muted)}
 .factory-block.off .mach-list{opacity:.4}
+.builder-toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}
+.toggle-all{
+  background:transparent;border:1px solid var(--border);border-radius:4px;
+  color:var(--dim);padding:3px 10px;cursor:pointer;font-size:11px;transition:all .15s;
+}
+.toggle-all:hover{border-color:var(--accent);color:var(--accent)}
 .add-factory-btn{
   background:transparent;border:2px dashed var(--accent);border-radius:6px;
   color:var(--accent);padding:10px;cursor:pointer;font-size:13px;font-weight:600;
@@ -1051,6 +1057,10 @@ function machineRowHTML(fid, m){
 function renderBuilder(el){
   const canRemove=S.factories.length>1;
   let html=`<div style="padding:14px">`;
+  if(S.factories.length>1){
+    const allCol=S.factories.every(f=>S.collapsed.has(f.id));
+    html+=`<div class="builder-toolbar"><button class="toggle-all" onclick="toggleAllFactories()">${allCol?'▶ Expand all':'▼ Collapse all'}</button></div>`;
+  }
   for(const f of S.factories){
     const collapsed=S.collapsed.has(f.id);
     const off=S.disabledFactories.has(f.id);
@@ -1138,6 +1148,11 @@ function renderResults(){
     if(!total.length){el.innerHTML='<div style="padding:16px;color:var(--muted);font-size:12px">Add machines to see results.</div>';return;}
     const multi=S.factories.length>1;
     let h='';
+    if(multi){
+      const keys=[...S.factories.map(f=>f.id),'all'];
+      const allCol=keys.every(k=>S.resCollapsed.has(k));
+      h+=`<div class="builder-toolbar"><button class="toggle-all" onclick="toggleAllResFactories()">${allCol?'▶ Expand all':'▼ Collapse all'}</button></div>`;
+    }
     for(const f of S.factories){
       if(!f.machines.length||S.disabledFactories.has(f.id)) continue;
       const {net}=calcBuilder(f.machines);
@@ -1292,6 +1307,21 @@ function toggleFactoryActive(fid){
   if(S.disabledFactories.has(fid)) S.disabledFactories.delete(fid);
   else S.disabledFactories.add(fid);
   renderTree(); renderResults();
+}
+
+function toggleAllFactories(){
+  const allCol=S.factories.every(f=>S.collapsed.has(f.id));
+  if(allCol) S.collapsed.clear();
+  else S.factories.forEach(f=>S.collapsed.add(f.id));
+  renderTree();
+}
+
+function toggleAllResFactories(){
+  const keys=[...S.factories.map(f=>f.id),'all'];
+  const allCol=keys.every(k=>S.resCollapsed.has(k));
+  if(allCol) S.resCollapsed.clear();
+  else keys.forEach(k=>S.resCollapsed.add(k));
+  renderResults();
 }
 
 function addFactory(){
