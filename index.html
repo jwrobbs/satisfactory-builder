@@ -110,11 +110,15 @@ body{
   display:inline-block;font-size:10px;color:var(--dim);
   background:var(--surf2);padding:1px 5px;border-radius:2px;margin-bottom:3px;
 }
-.rcard-row{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-top:2px;font-size:11px}
-.rcard-arrow{color:var(--muted)}
-.chip{display:inline-flex;align-items:center;gap:2px}
-.chip-n{color:var(--accent);font-weight:700}
-.chip-byp{opacity:.6}
+.rcard-io{
+  display:grid;grid-template-columns:max-content auto 1fr;
+  gap:1px 6px;align-items:baseline;margin-top:3px;font-size:11px;
+}
+.rio-q{text-align:right;white-space:nowrap;font-weight:700;color:var(--accent)}
+.rio-u{color:var(--dim);font-weight:400}
+.rio-n{color:var(--text)}
+.rio-arrow{grid-column:1/-1;color:var(--muted);font-size:10px;margin:2px 0}
+.rio-byp{opacity:.55}
 /* ── Planner ── */
 #plan{grid-area:plan;display:flex;flex-direction:column;overflow:hidden}
 .plan-bar{
@@ -890,13 +894,15 @@ function renderBrowserDetail(){
 
 function recipeCardHTML(r, highlightItem){
   const bldg=BMAP[r.machine];
-  let io_html='';
-  const inp=r.inputs.map(i=>`<span class="chip"><span class="chip-n">${fmt((i.amount*60)/r.duration)}</span>/min ${esc(IMAP[i.item]?.name||i.item)}</span>`).join('<span style="color:var(--muted);margin:0 2px">+</span>');
-  const out=r.outputs.map((o,idx)=>`<span class="chip${idx>0?' chip-byp':''}"><span class="chip-n">${fmt((o.amount*60)/r.duration)}</span>/min ${esc(IMAP[o.item]?.name||o.item)}</span>`).join('<span style="color:var(--muted);margin:0 2px">+</span>');
+  const row=(item,amount,extra)=>
+    `<span class="rio-q${extra}">${fmt((amount*60)/r.duration)}</span><span class="rio-u${extra}">/min</span><span class="rio-n${extra}">${esc(IMAP[item]?.name||item)}</span>`;
+  const ins=r.inputs.map(i=>row(i.item,i.amount,'')).join('');
+  const outs=r.outputs.map((o,idx)=>row(o.item,o.amount,idx>0?' rio-byp':'')).join('');
+  const sep=(ins&&outs)?`<span class="rio-arrow">↓</span>`:'';
   return `<div class="rcard${r.isAlternate?' alt':''}">
     <div class="rcard-name">${r.isAlternate?'<span class="alt-badge">ALT</span>':''}${esc(r.name)}</div>
     <span class="rcard-machine">${bldg?bldg.name:(r.machine==='miner'?'Miner':r.machine)}</span>
-    <div class="rcard-row">${inp}<span class="rcard-arrow">→</span>${out}</div>
+    <div class="rcard-io">${ins}${sep}${outs}</div>
   </div>`;
 }
 
