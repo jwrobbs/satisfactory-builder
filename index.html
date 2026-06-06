@@ -236,6 +236,13 @@ body{
 }
 .factory-dup:hover{border-color:var(--accent);color:var(--accent)}
 .factory-rem:hover{border-color:var(--red);color:var(--red)}
+.factory-active{
+  background:transparent;border:1px solid var(--border);border-radius:3px;
+  color:var(--muted);padding:3px 8px;cursor:pointer;font-size:11px;transition:all .15s;
+}
+.factory-active.on{color:var(--green);border-color:var(--green)}
+.factory-block.off{border-left-color:var(--muted)}
+.factory-block.off .mach-list{opacity:.4}
 .add-factory-btn{
   background:transparent;border:2px dashed var(--accent);border-radius:6px;
   color:var(--accent);padding:10px;cursor:pointer;font-size:13px;font-weight:600;
@@ -731,6 +738,7 @@ const S={
   collapsed:new Set(),    // factory IDs collapsed in planner (UI only)
   resCollapsed:new Set(), // factory IDs collapsed in results panel (UI only)
   browserCollapsed:new Set(), // recipe-browser categories collapsed (UI only)
+  disabledFactories:new Set(), // factories toggled off — excluded from totals (UI only)
   filter:'',
   browserItem:null,
 };
@@ -836,7 +844,7 @@ function calcBuilder(machines){
   for(const id of all) net[id]=(out[id]||0)-(inp[id]||0);
   return {out,inp,net,consumed,generated};
 }
-function allMachines(){ return S.factories.flatMap(f=>f.machines); }
+function allMachines(){ return S.factories.filter(f=>!S.disabledFactories.has(f.id)).flatMap(f=>f.machines); }
 
 // Per-machine input/output rates (/min). Outputs scale by miner tier; inputs by the cost multiplier.
 function machineIO(m){
@@ -1037,7 +1045,7 @@ function machineRowHTML(fid, m){
     <input class="mcount" type="number" min="0" step="1" value="${m.count}"
            onchange="setMCount(${fid},${m.id},+this.value)">
     <button class="mrem" onclick="removeMachine(${fid},${m.id})">✕</button>
-  </div>`;
+  </div>${ioHTML}</div>`;
 }
 
 function renderBuilder(el){
@@ -1045,20 +1053,22 @@ function renderBuilder(el){
   let html=`<div style="padding:14px">`;
   for(const f of S.factories){
     const collapsed=S.collapsed.has(f.id);
-    // Status light: dim if no machines, red if any deficit, green otherwise
+    const off=S.disabledFactories.has(f.id);
+    // Status light: dim if off/empty, red if any deficit, green otherwise
     let lightCls='dim';
-    if(f.machines.length){
+    if(!off && f.machines.length){
       const {net}=calcBuilder(f.machines);
       const hasDeficit=Object.values(net).some(n=>n<-0.001);
       lightCls=hasDeficit?'red':'green';
     }
-    html+=`<div class="factory-block">
+    html+=`<div class="factory-block${off?' off':''}">
       <div class="factory-hdr">
         <button class="factory-toggle" onclick="toggleFactory(${f.id})">${collapsed?'▶':'▼'}</button>
         <span class="factory-light ${lightCls}" data-fid="${f.id}"></span>
         <input class="factory-name-input" value="${esc(f.name)}"
                onchange="renameFactory(${f.id},this.value)"
                onblur="renameFactory(${f.id},this.value)">
+        <button class="factory-active${off?'':' on'}" onclick="toggleFactoryActive(${f.id})" title="${off?'Activate':'Deactivate'} factory">⏻</button>
         <button class="factory-dup" onclick="duplicateFactory(${f.id})" title="Duplicate factory">⧉</button>
         ${canRemove?`<button class="factory-rem" onclick="removeFactory(${f.id})">✕</button>`:''}
       </div>`;
@@ -1129,7 +1139,7 @@ function renderResults(){
     const multi=S.factories.length>1;
     let h='';
     for(const f of S.factories){
-      if(!f.machines.length) continue;
+      if(!f.machines.length||S.disabledFactories.has(f.id)) continue;
       const {net}=calcBuilder(f.machines);
       const hasDeficit=Object.values(net).some(n=>n<-0.001);
       const lightCls=hasDeficit?'red':'green';
@@ -1276,6 +1286,12 @@ function toggleFactory(fid){
   if(S.collapsed.has(fid)) S.collapsed.delete(fid);
   else S.collapsed.add(fid);
   renderTree();
+}
+
+function toggleFactoryActive(fid){
+  if(S.disabledFactories.has(fid)) S.disabledFactories.delete(fid);
+  else S.disabledFactories.add(fid);
+  renderTree(); renderResults();
 }
 
 function addFactory(){
