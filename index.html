@@ -29,9 +29,9 @@ body{
   background:var(--bg);color:var(--text);
   height:100vh;overflow:hidden;
   display:grid;
-  grid-template-rows:54px 1fr;
+  grid-template-rows:54px 1fr auto;
   grid-template-columns:230px 1fr 370px;
-  grid-template-areas:"hdr hdr hdr" "side plan res";
+  grid-template-areas:"hdr hdr hdr" "side plan res" "ftr ftr ftr";
 }
 /* ── Header ── */
 #hdr{
@@ -49,6 +49,16 @@ body{
 }
 .mode-btn.on{background:var(--accent);color:#0f1117;font-weight:700}
 .mode-btn:hover:not(.on){background:var(--surf2);color:var(--text)}
+/* ── Footer ── */
+#ftr{
+  grid-area:ftr;background:var(--surf);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+  padding:0 16px;height:26px;
+  font-size:11px;color:var(--muted);
+}
+.ftr-sep{color:var(--border)}
+.ftr-game{color:var(--dim)}
 /* ── Sidebar ── */
 #side{
   grid-area:side;background:var(--surf);
@@ -289,7 +299,7 @@ body{
 <body>
 
 <div id="hdr">
-  <div class="logo">Satisfactory Calculator <span>1.0</span></div>
+  <div class="logo">Satisfactory Calculator</div>
   <div class="vr"></div>
   <div class="mode-toggle">
     <button class="mode-btn on" data-mode="target" onclick="setMode('target')">⚙ Target Output</button>
@@ -314,6 +324,12 @@ body{
 <div id="res">
   <div class="res-hdr">Production Summary</div>
   <div id="res-body"></div>
+</div>
+
+<div id="ftr">
+  <span class="ftr-ver">v1.0.0</span>
+  <span class="ftr-sep">·</span>
+  <span class="ftr-game">Game data: Satisfactory v1.1</span>
 </div>
 
 <script>
