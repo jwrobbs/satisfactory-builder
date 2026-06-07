@@ -90,6 +90,15 @@ const ITEMS = [
   {id:'solid-biofuel',name:'Solid Biofuel',cat:'petroleum'},
   {id:'liquid-biofuel',name:'Liquid Biofuel',cat:'petroleum'},
   {id:'biomass',name:'Biomass',cat:'petroleum'},
+  {id:'alien-protein',name:'Alien Protein',cat:'basic'},
+  // Biomass sources (gathered / creature drops)
+  {id:'wood',name:'Wood',cat:'raw',isRaw:true},
+  {id:'leaves',name:'Leaves',cat:'raw',isRaw:true},
+  {id:'mycelia',name:'Mycelia',cat:'raw',isRaw:true},
+  {id:'hog-remains',name:'Hog Remains',cat:'raw',isRaw:true},
+  {id:'hatcher-remains',name:'Hatcher Remains',cat:'raw',isRaw:true},
+  {id:'spitter-remains',name:'Spitter Remains',cat:'raw',isRaw:true},
+  {id:'stinger-remains',name:'Stinger Remains',cat:'raw',isRaw:true},
   // Nuclear
   {id:'uranium-waste',name:'Uranium Waste',cat:'nuclear',isRaw:true},
   {id:'encased-uranium-cell',name:'Encased Uranium Cell',cat:'nuclear'},
@@ -256,6 +265,14 @@ const RECIPES = [
   R('r-smokeless-powder','Smokeless Powder','refinery',6,[io('black-powder',2),io('heavy-oil-residue',1)],[io('smokeless-powder',2)]),
   R('r-compacted-coal','Compacted Coal','assembler',12,[io('coal',2),io('sulfur',1)],[io('compacted-coal',4)]),
   // ── Biofuel ──
+  R('r-biomass-wood','Biomass (Wood)','constructor',4,[io('wood',4)],[io('biomass',20)]),
+  R('r-biomass-leaves','Biomass (Leaves)','constructor',5,[io('leaves',10)],[io('biomass',5)]),
+  R('r-biomass-mycelia','Biomass (Mycelia)','constructor',4,[io('mycelia',1)],[io('biomass',10)]),
+  R('r-biomass-protein','Biomass (Alien Protein)','constructor',4,[io('alien-protein',1)],[io('biomass',100)]),
+  R('r-protein-hog','Hog Protein','constructor',3,[io('hog-remains',1)],[io('alien-protein',1)]),
+  R('r-protein-hatcher','Hatcher Protein','constructor',3,[io('hatcher-remains',1)],[io('alien-protein',1)]),
+  R('r-protein-spitter','Spitter Protein','constructor',3,[io('spitter-remains',1)],[io('alien-protein',1)]),
+  R('r-protein-stinger','Stinger Protein','constructor',3,[io('stinger-remains',1)],[io('alien-protein',1)]),
   R('r-solid-biofuel','Solid Biofuel','constructor',4,[io('biomass',8)],[io('solid-biofuel',4)]),
   R('r-liquid-biofuel','Liquid Biofuel','refinery',4,[io('solid-biofuel',6),io('water',3)],[io('liquid-biofuel',4)]),
   // ── Generator fuel recipes (inputs = fuel consumed, no item outputs) ──
