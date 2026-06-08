@@ -4,7 +4,7 @@ Guidance for working in this repository.
 
 ## Project
 
-A single-file web app — a production calculator for the game **Satisfactory**. It has
+A web app — a production calculator for the game **Satisfactory**. It has
 two modes:
 
 - **Target Output** — pick an item and a target rate; it resolves the full production
@@ -16,7 +16,8 @@ State is serialized into the URL hash, so calculations are shareable/bookmarkabl
 
 ## Stack
 
-- Vanilla JavaScript (ES6), CSS, and HTML — **all inline in `index.html`**.
+- Vanilla JavaScript (ES6), CSS, and HTML across three files: `index.html` (markup + app
+  logic), `styles.css`, and `data.js` (game data).
 - No framework, no bundler, no npm, no dependencies.
 
 ## Run
@@ -27,21 +28,24 @@ State is serialized into the URL hash, so calculations are shareable/bookmarkabl
 ## Build / Test
 
 There is **no** build step, test suite, or linter. Keep it that way — the zero-tooling,
-single-file design is intentional (simple, portable, zero friction).
+no-dependency design is intentional (simple, portable, zero friction).
 
 ## Structure
 
-Everything lives in `index.html`. Key sections:
+Three files, loaded in order. `data.js` is a classic `<script>` before the app script,
+so its top-level `const`s (`ITEMS`/`BUILDINGS`/`RECIPES`) are visible to the app code.
 
-- **Game data** — `ITEMS`, `BUILDINGS`, `RECIPES`, defined via the `R(...)` (recipe) and
-  `io(...)` (item/amount) helpers.
-- **`initData()`** — builds lookup maps (`IMAP`, `RMAP`, `BY_OUT`, `BY_IN`, `BMAP`,
-  `BY_BLDG`).
-- **State** — a single global object `S`.
-- **Calc engines** — `resolveChain` / `flattenChain` (Target mode), `calcBuilder`
-  (Builder mode).
-- **Renderers** — `renderBrowser`, `renderPlannerBar`, `renderTree`, `renderResults`.
-- **URL state** — `saveURL` / `loadURL`.
+- **`data.js`** — game data: `ITEMS`, `BUILDINGS`, `RECIPES`, defined via the `R(...)`
+  (recipe) and `io(...)` (item/amount) helpers.
+- **`styles.css`** — all styling; theme via CSS custom properties at `:root`.
+- **`index.html`** — markup + the app logic:
+  - **`initData()`** — builds lookup maps (`IMAP`, `RMAP`, `BY_OUT`, `BY_IN`, `BMAP`,
+    `BY_BLDG`).
+  - **State** — a single global object `S`.
+  - **Calc engines** — `resolveChain` / `flattenChain` (Target mode), `calcBuilder`
+    (Builder mode).
+  - **Renderers** — `renderBrowser`, `renderPlannerBar`, `renderTree`, `renderResults`.
+  - **URL state** — `saveURL` / `loadURL`.
 
 ## Conventions
 
@@ -51,8 +55,9 @@ Everything lives in `index.html`. Key sections:
 - Recipes are curated against the **Satisfactory wiki** — validate any recipe additions
   or edits against the wiki before committing.
 - Alternate recipes use `isAlternate=true` and show a ★ in the UI.
-- Theme via CSS custom properties at `:root`; no hardcoded colors, no external CSS/CDNs.
-- Keep everything in the single `index.html` file.
+- Theme via CSS custom properties at `:root` in `styles.css`; no hardcoded colors, no CDNs.
+- Game data goes in `data.js`, styling in `styles.css`, app logic in `index.html`. No
+  build step — all three load directly and work from `file://` (keep them in one folder).
 
 ## When changing calculations
 
