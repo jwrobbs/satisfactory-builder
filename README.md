@@ -2,7 +2,7 @@
 
 A production calculator for the game [Satisfactory](https://www.satisfactorygame.com/).
 Plan factories, figure out exactly how many machines and raw resources you need, and see
-power draw and byproducts — all in a single HTML file, no install required.
+power draw and byproducts — no install, no build, no dependencies.
 
 **▶️ Live: [s-builder.joshuarobbs.com](https://s-builder.joshuarobbs.com/)**
 
@@ -21,7 +21,7 @@ Built for **Satisfactory 1.2**.
 - **Power tracking** per machine and totaled across the chain.
 - **Shareable URLs** — your build is saved into the page URL, so you can bookmark it or
   send it to someone.
-- **Zero dependencies** — one file, runs entirely in your browser, works offline.
+- **Zero dependencies** — runs entirely in your browser, works offline, no build step.
 
 ## Usage
 
@@ -29,7 +29,8 @@ Just open the live site: **[s-builder.joshuarobbs.com](https://s-builder.joshuar
 
 To run it yourself, no build or install is needed. Either:
 
-- Download `index.html` and open it in your browser, **or**
+- Download the files (`index.html`, `styles.css`, `data.js` — keep them together) and
+  open `index.html` in your browser, **or**
 - Serve the folder locally and visit the printed address:
   ```bash
   python3 -m http.server
@@ -37,15 +38,15 @@ To run it yourself, no build or install is needed. Either:
 
 ## How it works
 
-The whole app is a single `index.html` — vanilla JavaScript, CSS, and HTML with no
-framework or build step. Recipe and building data are embedded in the file and curated
-against the official Satisfactory wiki.
+Plain HTML/CSS/JS split across three files — `index.html` (markup + app logic),
+`styles.css`, and `data.js` — with no framework or build step. The game data lives in
+`data.js`, curated against the official Satisfactory wiki.
 
 ## Contributing
 
 See [CLAUDE.md](CLAUDE.md) for project structure and conventions. The short version:
-keep everything in `index.html`, no build tooling, and validate recipe changes against
-the wiki.
+data in `data.js`, styles in `styles.css`, logic in `index.html`; no build tooling; and
+validate recipe changes against the wiki.
 
 ## License
 
